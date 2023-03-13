@@ -12,8 +12,8 @@ library(Rtsne)
 library(biclust)
 library(plotly)
 library(curl)
+library(DT)
 
-# pat_token <- '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'
 url = "https://raw.githubusercontent.com/JalajVora/Master-Thesis-Visual-Analytics/main/data/Story_Classification_Data.csv"
 
 # Define server logic
@@ -58,16 +58,26 @@ function(input, output, session) {
     }
   })
   
-  prep_data <- reactive({
-    if (input$select_dataset == "stry_clss") {
-      d <- readData()
-      d <- d[,1:35]
-      d <- d[, sapply(d, is.numeric)]
-      d[is.na(d)] <- 0
-      d <- as.matrix(d)
-    }
-    
-    return(d)
+  # prep_data <- reactive({
+  #   if (input$select_dataset == "stry_clss") {
+  #     d <- readData()
+  #     d <- d[,1:35]
+  #     d <- d[, sapply(d, is.numeric)]
+  #     d[is.na(d)] <- 0
+  #     d <- as.matrix(d)
+  #   }
+  #   
+  #   return(d)
+  # })
+  
+  output$data_table <- DT::renderDataTable({
+    # DT::datatable(readrawData(), 
+    #               width = "800px",
+    #               height = "900px",
+    #               autoHideNavigation = TRUE,
+    #               style = 'bootstrap4',
+    #               editable = FALSE)
+    readData()
   })
   
   run.tsne <- reactive({
@@ -87,14 +97,25 @@ function(input, output, session) {
   run.biclust <- reactive({
     
     # using the biclust function to perform biclustering
+    # bic.res <- biclust(x = readData(), 
+    #                    method=BCBimax(), 
+    #                    minr=as.numeric(input$minr), 
+    #                    minc=as.numeric(input$mincol), 
+    #                    number=as.numeric(input$n_biclstrs)
+    # )
     bic.res <- biclust(x = readData(), 
                        method=BCBimax(), 
-                       minr=as.numeric(input$minr), 
-                       minc=as.numeric(input$mincol), 
-                       number=as.numeric(input$n_biclstrs)
+                       minr=4, 
+                       minc=4, 
+                       number=15
     )
-    print("In here")
+
     return(bic.res)
+  })
+  
+  output$biclust_summ <- renderPrint({
+    bic.res <- run.biclust()
+    return(summary(bic.res))
   })
   
   output$tsnePlot <- renderPlotly({
@@ -133,37 +154,59 @@ function(input, output, session) {
     }
   })
   
-  output$bic.plot <- renderPlot(
-    heatmapBC(x = readData(), bicResult = run.biclust(), outside = TRUE)
-  )
+  # output$bic.plot <- renderPlot(
+  #   biclust::heatmapBC(x = readData(), bicResult = run.biclust(), outside = TRUE)
+  # )
   
   output$heat_map <- renderPlotly({
     d = readData()
     bc = biclust(d, 6, method = BCCC())
-    print("before plotly")
     p = plot_ly(z = d[bc@RowxNumber, bc@NumberxCol], 
                 x = colnames(d)[bc@RowxNumber], 
                 y = rownames(d)[bc@NumberxCol],
                 colorscale = "Viridis",
                 type = "heatmap")
-    print("final")
+    
     return(p)
   })
   
-  # output$bic.scatter <- renderPlotly({
-  #   
-  #   clusters <- bicluster(x = )
-  #   
-  #   # Count number of rows and columns in each bicluster
-  #   rows <- sapply(bc@RowxNumber, length)
-  #   cols <- sapply(bc@NumberxCol, length)
+  output$bic.scatter <- renderPlotly({
+
+    bic.res <- run.biclust()
+    num_of_bic <- bic.res@Number
+    
+    bic.rowxcol <- data.frame(matrix(nrow = num_of_bic, ncol=2))
+    colnames(bic.rowxcol) <- c("row_count", "col_count")
+    
+    # Get the number of rows and columns in each bicluster
+    for (i in 1:num_of_bic) {
+      bic.rowxcol[i, 1] <- sum(bic.res@RowxNumber[,i] != 0)
+      bic.rowxcol[i, 2] <- sum(bic.res@NumberxCol[i,] != 0)
+    }
+
+    s <- plot_ly(source = "scatter_plot",
+                 bic.rowxcol, 
+                 x = ~row_count, 
+                 y = ~col_count,
+                 type = "scatter", 
+                 mode = "markers",
+                 marker = list(size = 10)
+                 ) %>% 
+      layout(xaxis = list(title = "Row Count"),
+             yaxis = list(title = "Column Count"),
+             title = "Bicluster Row and Column Counts",
+             hovermode = "closest")
+    
+    return(s)
+    
+    
   #   # Create scatter plot with counts as x and y coordinates
-  #   plot_ly(x = rows, y = cols, mode = "markers",
-  #           # marker = list(size = 10),
+  #   plot_ly(bic.rowxcol, x = ~row_count, y = ~col_count, mode = "markers",
+  #           marker = list(size = 10),
   #           type = "scatter",
-  #           hoverinfo = "text", 
-  #           text = paste("Bicluster ID: ", 1:length(rows)))
-  # })
+  #           hoverinfo = "text",
+  #           text = paste("Bicluster ID: ", 1:length(~row_count)))
+  })
   
   # output$biclustplot <- renderPlotly({
   #   if (input$select_dataset == "stry_clss") {
