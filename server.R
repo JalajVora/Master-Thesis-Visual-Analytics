@@ -58,18 +58,6 @@ function(input, output, session) {
     }
   })
   
-  # prep_data <- reactive({
-  #   if (input$select_dataset == "stry_clss") {
-  #     d <- readData()
-  #     d <- d[,1:35]
-  #     d <- d[, sapply(d, is.numeric)]
-  #     d[is.na(d)] <- 0
-  #     d <- as.matrix(d)
-  #   }
-  #   
-  #   return(d)
-  # })
-  
   output$data_table <- DT::renderDataTable({
     # DT::datatable(readrawData(), 
     #               width = "800px",
@@ -95,20 +83,30 @@ function(input, output, session) {
   })
   
   run.biclust <- reactive({
+    switch(input$select_method, 
+           'bimax' = {
+                      # using the biclust function to perform biclustering
+                      bic.res <- biclust(x = readData(),
+                                         method=BCBimax(),
+                                         minr=as.numeric(input$minr),
+                                         minc=as.numeric(input$mincol),
+                                         number=as.numeric(input$n_biclstrs))},
+           'bccc' = {
+             bic.res <- biclust(x = readData(),
+                                method=BCCC(),
+                                delta=as.numeric(input$delta),
+                                alpha=as.numeric(input$alpha),
+                                number=as.numeric(input$n_biclstrs))
+           },
+    )
     
-    # using the biclust function to perform biclustering
+    
     # bic.res <- biclust(x = readData(), 
     #                    method=BCBimax(), 
-    #                    minr=as.numeric(input$minr), 
-    #                    minc=as.numeric(input$mincol), 
-    #                    number=as.numeric(input$n_biclstrs)
+    #                    minr=4, 
+    #                    minc=4, 
+    #                    number=15
     # )
-    bic.res <- biclust(x = readData(), 
-                       method=BCBimax(), 
-                       minr=4, 
-                       minc=4, 
-                       number=15
-    )
 
     return(bic.res)
   })
@@ -160,14 +158,27 @@ function(input, output, session) {
   
   output$heat_map <- renderPlotly({
     d = readData()
-    bc = biclust(d, 6, method = BCCC())
+    bc = run.biclust()
+      # biclust(d, 6, method = BCCC())
+    if (input$select_method == "bimax")
+    {
+      # print("BCBimax /n")
+      print(d[bc@RowxNumber, bc@NumberxCol])
+      cat("Colnames: ", colnames(d)[bc@RowxNumber])
+      cat("rownames: ", rownames(d)[bc@NumberxCol])
+    }
+    
+    
     p = plot_ly(z = d[bc@RowxNumber, bc@NumberxCol], 
                 x = colnames(d)[bc@RowxNumber], 
                 y = rownames(d)[bc@NumberxCol],
                 colorscale = "Viridis",
                 type = "heatmap")
-    
     return(p)
+  })
+  
+  output$heat_map_bimax <- renderPlotly({
+    heatmaply(run.biclust(), scale_fill_gradient_fun = ggplot2::scale_fill_viridis_c, showticklabels = TRUE)
   })
   
   output$bic.scatter <- renderPlotly({
