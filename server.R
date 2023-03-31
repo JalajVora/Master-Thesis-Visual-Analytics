@@ -13,6 +13,8 @@ library(biclust)
 library(plotly)
 library(curl)
 library(DT)
+library(ComplexHeatmap)
+library(InteractiveComplexHeatmap)
 
 url = "https://raw.githubusercontent.com/JalajVora/Master-Thesis-Visual-Analytics/main/data/Story_Classification_Data.csv"
 
@@ -58,15 +60,15 @@ function(input, output, session) {
     }
   })
   
-  output$data_table <- DT::renderDataTable({
-    # DT::datatable(readrawData(), 
-    #               width = "800px",
-    #               height = "900px",
-    #               autoHideNavigation = TRUE,
-    #               style = 'bootstrap4',
-    #               editable = FALSE)
-    readData()
-  })
+  # output$data_table <- DT::renderDataTable({
+  #   # DT::datatable(readrawData(), 
+  #   #               width = "800px",
+  #   #               height = "900px",
+  #   #               autoHideNavigation = TRUE,
+  #   #               style = 'bootstrap4',
+  #   #               editable = FALSE)
+  #   readData()
+  # })
   
   run.tsne <- reactive({
     
@@ -74,10 +76,11 @@ function(input, output, session) {
     tsne_output <- Rtsne(readData(), check_duplicates= FALSE, 
                          max_iter = input$n_iters, 
                          perplexity=input$perplexity)
+    
     tsne_output_df <- as.data.frame(tsne_output$Y)
     
-    #preparing t-SNE output to visualise
     colnames(tsne_output_df) <- c("tsne_x", "tsne_y")
+    
     
     return(tsne_output_df)
   })
@@ -85,12 +88,12 @@ function(input, output, session) {
   run.biclust <- reactive({
     switch(input$select_method, 
            'bimax' = {
-                      # using the biclust function to perform biclustering
-                      bic.res <- biclust(x = readData(),
-                                         method=BCBimax(),
-                                         minr=as.numeric(input$minr),
-                                         minc=as.numeric(input$mincol),
-                                         number=as.numeric(input$n_biclstrs))},
+             bic.res <- biclust(x = readData(),
+                                method=BCBimax(),
+                                minr=as.numeric(input$minr),
+                                minc=as.numeric(input$mincol),
+                                number=as.numeric(input$n_biclstrs))
+             },
            'bccc' = {
              bic.res <- biclust(x = readData(),
                                 method=BCCC(),
@@ -144,7 +147,8 @@ function(input, output, session) {
               type = 'scatter', 
               mode = 'markers', 
               width = "800px", 
-              height = "800px" 
+              height = "800px",
+              showlegend = F
       ) %>%
         layout(xaxis = list(title = "t-SNE Dimension 1"),
                yaxis = list(title = "t-SNE Dimension 2")
@@ -152,34 +156,49 @@ function(input, output, session) {
     }
   })
   
-  # output$bic.plot <- renderPlot(
-  #   biclust::heatmapBC(x = readData(), bicResult = run.biclust(), outside = TRUE)
-  # )
-  
   output$heat_map <- renderPlotly({
     d = readData()
     bc = run.biclust()
-      # biclust(d, 6, method = BCCC())
-    if (input$select_method == "bimax")
-    {
-      # print("BCBimax /n")
-      print(d[bc@RowxNumber, bc@NumberxCol])
-      cat("Colnames: ", colnames(d)[bc@RowxNumber])
-      cat("rownames: ", rownames(d)[bc@NumberxCol])
-    }
     
-    
-    p = plot_ly(z = d[bc@RowxNumber, bc@NumberxCol], 
-                x = colnames(d)[bc@RowxNumber], 
+    p = plot_ly(z = d[bc@RowxNumber, bc@NumberxCol],
+                x = colnames(d)[bc@RowxNumber],
                 y = rownames(d)[bc@NumberxCol],
-                colorscale = "Viridis",
-                type = "heatmap")
+                type = "heatmap",
+                showscale = FALSE,name = "All Biclusters")
+
     return(p)
   })
+
   
-  output$heat_map_bimax <- renderPlotly({
-    heatmaply(run.biclust(), scale_fill_gradient_fun = ggplot2::scale_fill_viridis_c, showticklabels = TRUE)
-  })
+  observeEvent(
+    input$select_method == 'bimax',
+    {
+      d = readData()
+      bc = run.biclust()
+      ht = Heatmap(d)
+      ht = draw(ht)
+      
+      makeInteractiveComplexHeatmap(input, output, session, ht, "ht")
+    }
+  )
+  
+  
+  # output$heat_map_bimax <- renderPlotly({
+  #   
+  #   
+  #   
+  #   # rows <- attr(bc, "row")
+  #   # cols <- attr(bc, "col")
+  #   # subset_data <- d[rows, cols]
+  #   # my_colors <- colorRampPalette(c("white", "black"))(2)
+  #   
+  # 
+  #   
+  #   # heatmaply(run.biclust())
+  #             # scale_fill_gradient_fun = ggplot2::scale_fill_viridis_c, 
+  #             # showticklabels = TRUE
+  #             
+  # })
   
   output$bic.scatter <- renderPlotly({
 
@@ -201,40 +220,36 @@ function(input, output, session) {
                  y = ~col_count,
                  type = "scatter", 
                  mode = "markers",
-                 marker = list(size = 10)
+                 marker = list(size = 10),
+                 showlegend = F
                  ) %>% 
+      config(modeBarButtonsToRemove = c('zoom','zoomin', 'zoomOut', 'pan2d', 'zoomOut2d')) %>%
       layout(xaxis = list(title = "Row Count"),
              yaxis = list(title = "Column Count"),
              title = "Bicluster Row and Column Counts",
              hovermode = "closest")
     
     return(s)
-    
-    
-  #   # Create scatter plot with counts as x and y coordinates
-  #   plot_ly(bic.rowxcol, x = ~row_count, y = ~col_count, mode = "markers",
-  #           marker = list(size = 10),
-  #           type = "scatter",
-  #           hoverinfo = "text",
-  #           text = paste("Bicluster ID: ", 1:length(~row_count)))
   })
   
-  # output$biclustplot <- renderPlotly({
-  #   if (input$select_dataset == "stry_clss") {
-  #     xmat <- prep_data()
-  #   }
-  #   
-  #   else {
-  #     xmat <- readData()
-  #   }
-  #   
-  #   bc <- run.biclust()
-  #   
-  #   plot_ly(z = xmat[bc@RowxNumber, bc@NumberxCol], 
-  #           x = colnames(xmat)[bc@NumberxCol], 
-  #           y = rownames(xmat)[bc@RowxNumber],
-  #           colorscale = "Viridis",
-  #           type = "heatmap")
-  #   # heatmapBC(x=xmat, bicResult = run.biclust(), outside = TRUE)
-  # })
+  output$biclust_select_heatmap <- renderPrint(
+    {
+      d <- event_data(event = "plotly_selected", 
+                      source = "scatter_plot")
+      
+      bic.res <- run.biclust()
+      num_of_bic <- bic.res@Number
+      
+      bic.rowxcol <- data.frame(matrix(nrow = num_of_bic, ncol=2))
+      colnames(bic.rowxcol) <- c("row_count", "col_count")
+      
+      # Get the number of rows and columns in each bicluster
+      for (i in 1:num_of_bic) {
+        bic.rowxcol[i, 1] <- sum(bic.res@RowxNumber[,i] != 0)
+        bic.rowxcol[i, 2] <- sum(bic.res@NumberxCol[i,] != 0)
+      }
+      
+      
+    }
+  )
 }

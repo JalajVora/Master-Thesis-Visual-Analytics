@@ -9,6 +9,8 @@
 
 library(shiny)
 library(plotly)
+library(ComplexHeatmap)
+library(InteractiveComplexHeatmap)
 
 fluidPage(
   
@@ -23,29 +25,30 @@ fluidPage(
                     "Upper Triangle" = "uppr_trngl",
                     "Lower Triangle" = "lwr_trngl")),
       hr(),
-      conditionalPanel("input.algorithms == 'BiClustering' && input.tabs != 'Summary'",
-        # "input.algorithms == 'BiClustering' && input.tabs == 'Heatmap'",
+      conditionalPanel("input.algorithms == 'BiClustering'",
                        selectInput('select_method', 'Select BiClustering Method:',
                                    c("BiMax" = "bimax", "BCCC" = "bccc")),
-                       conditionalPanel(condition = "input.select_method == 'bimax'",
-                                        numericInput("n_biclstrs", "Number of Biclusters",
-                                                     value = 4, 
-                                                     min = 1, 
-                                                     max = 20, 
-                                                     step = 1),
-                                        br(),
-                                        numericInput("minr", "Minimum number of rows",
-                                                     value = 4, 
-                                                     min = 2, 
-                                                     max = 100, 
-                                                     step = 1),
-                                        br(),
-                                        numericInput("mincol", 
-                                                     "Minimum number of Columns",
-                                                     value = 4, 
-                                                     min = 2, 
-                                                     max = 50, 
-                                                     step = 1)),
+                       conditionalPanel(
+                         condition = "input.select_method == 'bimax'",
+
+                         numericInput("n_biclstrs", "Number of Biclusters",
+                                       value = 4, 
+                                       min = 1, 
+                                       max = 20, 
+                                       step = 1),
+                          br(),
+                          numericInput("minr", "Minimum number of rows",
+                                       value = 4, 
+                                       min = 2, 
+                                       max = 100, 
+                                       step = 1),
+                          br(),
+                          numericInput("mincol", 
+                                       "Minimum number of Columns",
+                                       value = 4, 
+                                       min = 2, 
+                                       max = 50, 
+                                       step = 1)),
                        conditionalPanel(
                          condition = "input.select_method == 'bccc'",
                          numericInput("n_biclstrs", "Number of Biclusters",
@@ -93,31 +96,41 @@ fluidPage(
                  
                  tabsetPanel(id = "tabs",
                    tabPanel("Summary",
-                            verbatimTextOutput("biclust_summ"),
-                            DT::dataTableOutput(outputId = "data_table", 
-                                                width = "800px", 
-                                                height = "900px"),
+                            fluidRow(
+                              column(6, style = "width: 800px;", verbatimTextOutput("biclust_summ"))
+                            ),
+                            # fluidRow(
+                            #   InteractiveComplexHeatmapOutput("ht")
+                            # )
+                            # DT::dataTableOutput(outputId = "data_table", 
+                            #                     width = "800px", 
+                            #                     height = "900px"),
                             ),
                    tabPanel("Heatmap",
-                            # selectInput('select_method', 'Select BiClustering Method:',
-                            #             c("BiMax" = "bimax", "BCCC" = "bccc")),
-                            # conditionalPanel(condition = "input.select_method == bimax",
-                            #                  numericInput("n_biclstrs", "Number of Biclusters",
-                            #                               value = 4, min = 1, max = 20, step = 1),
-                            #                  br(),
-                            #                  numericInput("minr", "Minimum number of rows",
-                            #                               value = 4, min = 2, max = 100, step = 1),
-                            #                  numericInput("mincol", "Minimum number of Columns",
-                            #                               value = 4, min = 2, max = 50, step = 1),
                            hr(),
-                           plotlyOutput(outputId = "heat_map", 
-                                        width = "1000px", 
-                                        height = "900px"),
+                           conditionalPanel("input.select_method == 'bimax'",
+                                            InteractiveComplexHeatmapOutput(heatmap_id = "ht",
+                                                                            title1 = "All BiClusters", 
+                                                                            title2 = "Selected sub-bicluster", 
+                                                                            width1 = 650, 
+                                                                            height1 = 450, 
+                                                                            width2 = 500),
+                           ),
+                           conditionalPanel(
+                             condition = "input.select_method == 'bccc'",
+                             plotlyOutput(outputId = "heat_map",
+                                          width = "1000px",
+                                          height = "900px")),
+                           hr(),
                    ),
                    tabPanel("Other",
+                            hr(),
+                            fluidRow(
                             plotlyOutput("bic.scatter", 
-                                         width = "800px", 
-                                         height = "900px"),
+                                         width = "500px", 
+                                         height = "500px")),
+                            fluidRow(
+                            verbatimTextOutput("biclust_select_heatmap")),
                    ),
                  ),
                  
