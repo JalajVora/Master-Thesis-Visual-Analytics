@@ -37,7 +37,7 @@ fluidPage(
                          condition = "input.select_method == 'bimax'",
 
                          numericInput("n_biclstrs", "Number of Biclusters",
-                                       value = 4, 
+                                       value = 2, 
                                        min = 1, 
                                        max = 20, 
                                        step = 1),
@@ -63,9 +63,9 @@ fluidPage(
                  hr(),
                  hr(),
                  fluidRow(
-                   column(6, style = "width: 800px;", plotlyOutput("tsnePlot")
+                   column(6, style = "width: 500px;", plotlyOutput("tsnePlot")
                           ),br(), br(), br(),
-                   column(6, style = "width: 800px;", verbatimTextOutput("tsneplot.summary") ), br(),
+                   column(3, style = "width: 400px;", verbatimTextOutput("tsneplot.summary") ), br(),
                    ),
                  hr(),
                  fluidRow(

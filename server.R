@@ -23,6 +23,7 @@ options (warn = -1)
 # Define server logic
 function(input, output, session) {
   
+  onStop(function() cat("This will run on session stop\n"))
   readData <- reactive({
     
     if (input$select_dataset == "stry_clss") {
@@ -111,8 +112,8 @@ function(input, output, session) {
   
   output$biclust_summ <- renderPrint({
     bic.res <- run.biclust()
-    
-    return(summary(bic.res))
+    return(bic.res)
+    # return("hi there")
   })
   
   output$tsnePlot <- renderPlotly({
@@ -179,6 +180,8 @@ function(input, output, session) {
       # row_labels <- readrawData()
       # row.names(d) <- row_labels[,36]
       
+      # print(bc@RowxNumber)
+      # print(bc@NumberxCol)
       
       ones_counts <- colSums(d == 1)
       col_ha = HeatmapAnnotation(Count = anno_barplot(ones_counts))
@@ -234,20 +237,33 @@ function(input, output, session) {
                               source = "scatter_plot")
       plt.number <- as.numeric(clickData$pointNumber+1)
       
+      num_rows = dim(data)[1]
+      num_cols = dim(data)[2]
+      num_bicluster = dim(bc.res@RowxNumber)[2]
+
+      cluster_array = array(dim=c(num_rows, num_cols, num_bicluster))
+      for (i in 1:num_rows) {
+        for (j in 1:num_cols) {
+          cluster_array[i,j,] = bc.res@RowxNumber[i,] & bc.res@NumberxCol[,j]
+        }
+      }
+      
       if (is.null(clickData)){
         plt.BC.heatmap <- heatmapBC(x = data,
                                     bicResult = bc.res,
                                     number = input$n_biclstrs,
                                     local = FALSE,
-                                    order = TRUE,
+                                    order = FALSE,
                                     outside = TRUE)
       } else {
-        plt.BC.heatmap <- drawHeatmap(x = data,
-                                    bicResult = bc.res,
-                                    number = plt.number,
-                                    local = TRUE)}
-        
-      
+        plt.BC.heatmap = heatmap(1 * cluster_array[,,plt.number],
+                                 scale = "none",
+                                 Rowv = NA,
+                                 Colv = NA,
+                                 col = c("white", "red"),
+                                 main = "HeatMap for single bicluster",
+                                 labCol = colnames(data))
+      }
       return(plt.BC.heatmap)
       
       },width = 900,height = 800)
@@ -345,19 +361,19 @@ function(input, output, session) {
     }
     
     total_similarity = 0.0
-    for (i in 1:dim(cleaned_data)[1]) {
-      for (j in i:dim(cleaned_data)[1]) {
-        if (i==j) {
-          next
-        }
-        xor_row = xor(cleaned_data[i,],cleaned_data[j,])
-        similarity_count = dim(cleaned_data)[2] - sum(xor_row)
-        
-        total_similarity = total_similarity + (as.double(similarity_count)/dim(cleaned_data)[2])
-      }
-    }
-    dim_c_2 = (dim(cleaned_data)[1] * dim(cleaned_data)[1]-1)/2
-    total_similarity = total_similarity/dim_c_2
+    # for (i in 1:dim(cleaned_data)[1]) {
+    #   for (j in i:dim(cleaned_data)[1]) {
+    #     if (i==j) {
+    #       next
+    #     }
+    #     xor_row = xor(cleaned_data[i,],cleaned_data[j,])
+    #     similarity_count = dim(cleaned_data)[2] - sum(xor_row)
+    #     
+    #     total_similarity = total_similarity + (as.double(similarity_count)/dim(cleaned_data)[2])
+    #   }
+    # }
+    # dim_c_2 = (dim(cleaned_data)[1] * dim(cleaned_data)[1]-1)/2
+    # total_similarity = total_similarity/dim_c_2
     
     subset_similarity = double(dim(subset_data)[1])
     for (i in 1:dim(subset_data)[1]) {
@@ -365,13 +381,8 @@ function(input, output, session) {
         if (i==j) {
           next
         }
-
-        similarity_count = 0
-        for (col in 1:dim(subset_data)[2]) {
-          if (subset_data[i,col]==cleaned_data[j,col]) {
-            similarity_count= similarity_count + 1
-          }
-        }
+        xor_row = xor(subset_data[i,],cleaned_data[j,])
+        similarity_count = dim(cleaned_data)[2] - sum(xor_row)
         subset_similarity[i] = subset_similarity[i] + (as.double(similarity_count)/dim(subset_data)[2])
       }
       subset_similarity[i] = subset_similarity[i]/(dim(cleaned_data)[1]-1)
