@@ -313,9 +313,13 @@ function(input, output, session) {
                   y0 = merged.cleaned.df[2,col],
                   y1 = merged.cleaned.df[2,col])
       mylines <- c(mylines, list(line))
+      line_color = "green"
+      if (merged.subset.df[2, col]<merged.cleaned.df[2, col]) {
+        line_color = "red"
+      }
       
       cl_line = list(type = "line",
-                  line = list(color = "red"),
+                  line = list(color = line_color),
                   xref = "x",
                   yref = "y",
                   x0 = as.double(col)-0.25,
@@ -325,9 +329,9 @@ function(input, output, session) {
       mylines <- c(mylines, list(cl_line))
       
       myrect = list(type = "rect",
-                  line = list(color = "red"),
+                  line = list(color = line_color),
                   opacity = 0.3,
-                  fillcolor = "red",
+                  fillcolor = line_color,
                   xref = "x",
                   yref = "y",
                   x0 = as.double(col)-0.25,
@@ -343,5 +347,6 @@ function(input, output, session) {
     
     return(fig)
     
-  })
+  }
+  )
 }
