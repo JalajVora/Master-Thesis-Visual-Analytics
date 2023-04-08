@@ -18,6 +18,7 @@ library(ComplexHeatmap)
 library(InteractiveComplexHeatmap)
 
 url = "https://raw.githubusercontent.com/JalajVora/Master-Thesis-Visual-Analytics/main/data/Story_Classification_Data.csv"
+options (warn = -1)
 
 # Define server logic
 function(input, output, session) {
@@ -291,7 +292,12 @@ function(input, output, session) {
     cleaned_data = as.data.frame(readData())
     # raw_data = readrawData()
     subset_data = as.data.frame(cleaned_data[clickData$customdata,])
-
+    fig <- plotly_empty(type="scatter", mode = "markers")
+    if (dim(subset_data)[1]==0) {
+      return(fig)
+    }
+    
+    
     count.subset.cols = subset_data %>% summarise_all(sum)
     percentage.subset.cols <- (count.subset.cols/dim(subset_data)[1])*100
     merged.subset.df = rbind(count.subset.cols, percentage.subset.cols)
@@ -341,11 +347,81 @@ function(input, output, session) {
       mylines <- c(mylines, list(myrect))
     }
     
-    fig <- plot_ly()
-    
     fig <- layout(fig, title = 'Highlighting with Lines', shapes = mylines)
     
     return(fig)
     
+  })
+  
+  output$similarity.plot <- renderPlotly({
+    clickData <- event_data(event = "plotly_selected",
+                            source = "tsne_plot")
+    
+    cleaned_data = as.data.frame(readData())
+    subset_data = as.data.frame(cleaned_data[clickData$customdata,])
+    fig <- plotly_empty(type="scatter", mode = "markers")
+    if (dim(subset_data)[1]==0) {
+      return(fig)
+    }
+    
+    total_similarity = 0.0
+    for (i in 1:dim(cleaned_data)[1]) {
+      for (j in 1:dim(cleaned_data)[1]) {
+        if (i>=j) {
+          next
+        }
+        similarity_count = 0
+        for (col in 1:dim(cleaned_data)[2]) {
+          if (cleaned_data[i,col]==cleaned_data[j,col]) {
+            similarity_count= similarity_count + 1
+          }
+        }
+        total_similarity = total_similarity + (as.double(similarity_count)/dim(cleaned_data)[2])
+      }
+    }
+    dim_c_2 = (dim(cleaned_data)[1] * dim(cleaned_data)[1]-1)/2
+    total_similarity = total_similarity/dim_c_2
+    
+    subset_similarity = double(dim(subset_data)[1])
+    for (i in 1:dim(subset_data)[1]) {
+      for (j in 1:dim(cleaned_data)[1]) {
+        if (i==j) {
+          next
+        }
+
+        similarity_count = 0
+        for (col in 1:dim(subset_data)[2]) {
+          if (subset_data[i,col]==cleaned_data[j,col]) {
+            similarity_count= similarity_count + 1
+          }
+        }
+        subset_similarity[i] = subset_similarity[i] + (as.double(similarity_count)/dim(subset_data)[2])
+      }
+      subset_similarity[i] = subset_similarity[i]/(dim(cleaned_data)[1]-1)
+    }
+    subset_similarity = subset_similarity*100
+    
+    fig = plot_ly(source = "scatter_plot",
+                x = subset_similarity, 
+                y = integer(dim(subset_data)[1]),
+                type = "scatter", 
+                mode = "markers",
+                marker = list(size = 10),
+                showlegend = F)
+    
+    
+    mylines <- list()
+    line = list(type = "line",
+                line = list(color = "red", dash = "solid"),
+                xref = "x",
+                yref = "y",
+                x0 = total_similarity*100,
+                x1 = total_similarity*100,
+                y0 = -1,
+                y1 = 1)
+    mylines <- c(mylines, list(line))
+    
+    fig <- layout(fig, title = 'Highlighting with Lines', shapes = mylines)
+    return(fig)
   })
 }

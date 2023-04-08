@@ -71,6 +71,11 @@ fluidPage(
                  fluidRow(
                    column(6, style = "width: 900px;", plotlyOutput("tsne.usage.dev.plot")
                    ),br(), br(), br(),
+                 ),
+                 hr(),
+                 fluidRow(
+                   column(6, style = "width: 900px;", plotlyOutput("similarity.plot")
+                   ),br(), br(), br(),
                  )
                  ),
                  
