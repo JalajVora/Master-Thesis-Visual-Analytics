@@ -283,7 +283,7 @@ function(input, output, session) {
   # 
   # })
   
-  output$tsne.lineplot <- renderPlotly({
+  output$tsne.usage.dev.plot <- renderPlotly({
     
     clickData <- event_data(event = "plotly_selected",
                             source = "tsne_plot")
@@ -347,6 +347,5 @@ function(input, output, session) {
     
     return(fig)
     
-  }
-  )
+  })
 }
