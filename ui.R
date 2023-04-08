@@ -1,12 +1,3 @@
-#
-# This is the user-interface definition of a Shiny web application. You can
-# run the application by clicking 'Run App' above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
-
 library(shiny)
 library(plotly)
 library(ComplexHeatmap)
@@ -18,16 +9,30 @@ fluidPage(
   
   sidebarLayout(
     sidebarPanel(
-      # "Story Classification" = "stry_clss",
-      helpText("Option to select a dataset to explore"),
+      helpText("Please select a dataset to explore patterns"),
       selectInput('select_dataset', 'Select Dataset:', 
                   c("Story Classification" = "stry_clss",
                     "Upper Triangle" = "uppr_trngl",
                     "Lower Triangle" = "lwr_trngl")),
       hr(),
+      conditionalPanel("input.algorithms == 't-SNE'",
+                       hr(),
+                       helpText("Maximum number of iterations for the optimization"),
+                       sliderInput("n_iters", "Number of iterations", 
+                                   min = 500, 
+                                   max = 5000, 
+                                   value = 500),
+                       hr(),
+                       helpText("Perplexity controls the balance between attention to local and global aspects of the data.\n A higher perplexity value results in more emphasis on preserving the global structure of the data, while a lower perplexity value places more emphasis on preserving the local structure of the data."),
+                       sliderInput("perplexity", "Perplexity", 
+                                   min = 5, 
+                                   max = 30, 
+                                   value = 5, 
+                                   step = 2),
+                       hr(),),
       conditionalPanel("input.algorithms == 'BiClustering'",
                        selectInput('select_method', 'Select BiClustering Method:',
-                                   c("BiMax" = "bimax", "BCCC" = "bccc")),
+                                   c("BiMax" = "bimax")),
                        conditionalPanel(
                          condition = "input.select_method == 'bimax'",
 
@@ -49,103 +54,59 @@ fluidPage(
                                        min = 2, 
                                        max = 50, 
                                        step = 1)),
-                       conditionalPanel(
-                         condition = "input.select_method == 'bccc'",
-                         numericInput("n_biclstrs", "Number of Biclusters",
-                                      value = 4, 
-                                      min = 1, 
-                                      max = 20, 
-                                      step = 1),
-                         br(),
-                         numericInput("alpha", "Alpha",
-                                      value = 1.5, 
-                                      min = 1.0, 
-                                      max = 5.0, 
-                                      step = 0.5),
-                         br(),
-                         numericInput("delta", 
-                                      "Delta",
-                                      value = 1.0, 
-                                      min = 1.0, 
-                                      max = 5.0, 
-                                      step = 0.5)
-                       )
-                       )
-    ),
-    
+                        ),
+    width=2),
     mainPanel(
-      # fluidRow(
-      #   column(3, DT::dataTableOutput('table', width = 500)),
-      # ),
       tabsetPanel(id = "algorithms",
         tabPanel("t-SNE", 
-                 sliderInput("n_iters", "Number of iterations", 
-                             min = 500, 
-                             max = 5000, 
-                             value = 500), 
-                 sliderInput("perplexity", "Perplexity", 
-                             min = 5, 
-                             max = 30, 
-                             value = 5, 
-                             step = 2),
+                 headerPanel("Welcome to t-SNE"),
                  hr(),
-                 plotlyOutput("tsnePlot")
-        ),
+                 hr(),
+                 fluidRow(
+                   column(6, style = "width: 800px;", plotlyOutput("tsnePlot")
+                          ),br(), br(), br(),
+                   column(6, style = "width: 800px;", verbatimTextOutput("tsneplot.summary") ), br(),
+                   ),
+                 hr(),
+                 fluidRow(
+                   column(6, style = "width: 900px;", plotlyOutput("tsne.lineplot")
+                   ),br(), br(), br(),
+                 )
+                 ),
+                 
         tabPanel("BiClustering", 
                  headerPanel("Welcome to Biclustering"),
                  
                  tabsetPanel(id = "tabs",
                    tabPanel("Summary",
                             fluidRow(
-                              column(6, style = "width: 800px;", verbatimTextOutput("biclust_summ"))
-                            ),
-                            # fluidRow(
-                            #   InteractiveComplexHeatmapOutput("ht")
-                            # )
-                            # DT::dataTableOutput(outputId = "data_table", 
-                            #                     width = "800px", 
-                            #                     height = "900px"),
+                              column(6, style = "width: 800px;", verbatimTextOutput("biclust_summ")
+                                     )
+                              ),
                             ),
                    tabPanel("Heatmap",
                            hr(),
                            conditionalPanel("input.select_method == 'bimax'",
                                             InteractiveComplexHeatmapOutput(heatmap_id = "ht",
-                                                                            title1 = "All BiClusters", 
-                                                                            title2 = "Selected sub-bicluster", 
-                                                                            width1 = 650, 
-                                                                            height1 = 450, 
-                                                                            width2 = 500),
+                                                                            title1 = "All BiClusters",
+                                                                            title2 = "Selected bicluster",
+                                                                            width1 = 650,
+                                                                            height1 = 450,
+                                                                            width2 = 500)
+                                            ),
                            ),
-                           conditionalPanel(
-                             condition = "input.select_method == 'bccc'",
-                             plotlyOutput(outputId = "heat_map",
-                                          width = "1000px",
-                                          height = "900px")),
-                           hr(),
-                   ),
-                   tabPanel("Other",
+                   tabPanel("Scatterplot",
                             hr(),
                             fluidRow(
-                            plotlyOutput("bic.scatter", 
-                                         width = "500px", 
-                                         height = "500px")),
-                            fluidRow(
-                            verbatimTextOutput("biclust_select_heatmap")),
+                              column(6, plotlyOutput("bic.scatter", width = "300px", height = "300px")
+                                     ),
+                              column(6, plotOutput("bc.indiv.htmap")
+                                     ), br(), br(), br(),
+                              ),
+                            ),
                    ),
                  ),
-                 
-                 
-                 ),
-                 
-                 # hr(), 
-                 # br(), hr(),
-                 # plotOutput("bic.plot", width = "800px", height = "900px", hover = "values")
-                 
-                 #          # hr(),
-                 #          # plotOutput("biclustplot", width = "800px", height = "900px", hover = "values"),
+              ),
+      width=8,),
         ),
-      ),
-    )
-  )
-# )
-
+)
