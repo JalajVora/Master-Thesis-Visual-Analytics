@@ -232,9 +232,7 @@ function(input, output, session) {
       
       clickData <- event_data(event = "plotly_click",
                               source = "scatter_plot")
-      print(typeof(clickData$pointNumber))
       plt.number <- as.numeric(clickData$pointNumber+1)
-      print(plt.number)
       
       if (is.null(clickData)){
         plt.BC.heatmap <- heatmapBC(x = data,
@@ -266,31 +264,13 @@ function(input, output, session) {
     return(sub_set$Title)
   })
   
-  # output$tsne.boxplot <- renderPlotly({
-  # 
-  #   clickData <- event_data(event = "plotly_selected",
-  #                           source = "tsne_plot")
-  # 
-  #   tsne_output <- run.tsne()
-  #   raw_data = readrawData()
-  #   cleaned_data = readData()
-  #   sub_set = cleaned_data[clickData$customdata,]
-  #   sub_set = as.data.frame(sub_set)
-  # 
-  #   
-  #   count.subset.cols = sub_set %>% summarise_all(sum)
-  #   percentage.subset.cols <- (count.subset.cols/dim(sub_set)[1])*100
-  #   merged.subset.df = rbind(count.subset.cols, percentage.subset.cols)
-  # 
-  # })
-  
+
   output$tsne.usage.dev.plot <- renderPlotly({
     
     clickData <- event_data(event = "plotly_selected",
                             source = "tsne_plot")
     
     cleaned_data = as.data.frame(readData())
-    # raw_data = readrawData()
     subset_data = as.data.frame(cleaned_data[clickData$customdata,])
     fig <- plotly_empty(type="scatter", mode = "markers")
     if (dim(subset_data)[1]==0) {
@@ -366,16 +346,13 @@ function(input, output, session) {
     
     total_similarity = 0.0
     for (i in 1:dim(cleaned_data)[1]) {
-      for (j in 1:dim(cleaned_data)[1]) {
-        if (i>=j) {
+      for (j in i:dim(cleaned_data)[1]) {
+        if (i==j) {
           next
         }
-        similarity_count = 0
-        for (col in 1:dim(cleaned_data)[2]) {
-          if (cleaned_data[i,col]==cleaned_data[j,col]) {
-            similarity_count= similarity_count + 1
-          }
-        }
+        xor_row = xor(cleaned_data[i,],cleaned_data[j,])
+        similarity_count = dim(cleaned_data)[2] - sum(xor_row)
+        
         total_similarity = total_similarity + (as.double(similarity_count)/dim(cleaned_data)[2])
       }
     }
