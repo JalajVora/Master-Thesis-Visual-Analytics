@@ -11,14 +11,81 @@ library(shiny)
 library(Rtsne)
 library(biclust)
 library(plotly)
+library(ggplot2)
+library(ggdendro)
 library(curl)
 library(dplyr)
-# library(DT)
+library(superbiclust)
+library(fabia)
 library(ComplexHeatmap)
 library(InteractiveComplexHeatmap)
+library(colormod)
 
 url = "https://raw.githubusercontent.com/JalajVora/Master-Thesis-Visual-Analytics/main/data/Story_Classification_Data.csv"
 options (warn = -1)
+
+
+number2binary = function(number, noBits) {
+  binary_vector = rev(as.numeric(intToBits(number)))
+  if(missing(noBits)) {
+    return(binary_vector)
+  } else {
+    binary_vector = binary_vector[-(1:(length(binary_vector) - noBits))]
+    return(binary_vector)
+  }
+}
+
+createUniqueColors = function(num_colors) {
+  unique_colors = matrix(data=0, nrow=3, ncol=num_colors)
+  for (i in 0:(num_colors-1)) {
+    h = i * (1.0 / num_colors)
+    hsvcolor = matrix(data=list(h,1,1), nrow=3, ncol=1, dimnames=list(c('h','s','v')))
+    rgbcolor = hsv2rgb(hsvcolor)
+    unique_colors[,i+1] = rgbcolor
+  }
+  return(unique_colors)
+}
+
+createCustomColorPallete = function(unique_colors) {
+  num_colors = dim(unique_colors)[2]
+  all_colors = list()
+  all_colors = append(all_colors, "#FFFFFF80")
+  for (i in 1:((2^num_colors)-1)) {
+    bits = number2binary(i, num_colors)
+    sum_red = 0
+    sum_green = 0
+    sum_blue = 0
+    colors_added = 0
+    for (j in 1:num_colors) {
+      index = num_colors+1-j
+      if (bits[j] == 1) {
+        sum_red = sum_red + unique_colors[1,index]
+        sum_green = sum_green + unique_colors[2,index]
+        sum_blue = sum_blue + unique_colors[3,index]
+        colors_added = colors_added + 1
+      }
+    }
+    red_value = as.integer(sum_red / colors_added)
+    green_value = as.integer(sum_green / colors_added)
+    blue_value = as.integer(sum_blue / colors_added)
+    all_colors = append(all_colors, rgb(red_value, green_value, blue_value, 128, maxColorValue = 255))
+  }
+  return(as.character(all_colors))
+}
+
+createBinaryEncodedMatrix = function(matrix_3d) {
+  num_rows = dim(matrix_3d)[1]
+  num_cols = dim(matrix_3d)[2]
+  num_bicluster = dim(matrix_3d)[3]
+  a = array(data=0, dim=c(num_rows, num_cols))
+  for (i in 0:(num_bicluster-1)) {
+    multiplier = 2^i
+    multiplied_array= multiplier * matrix_3d[,,i+1]
+    a = a + multiplied_array
+  }
+  return(a)
+}
+
 
 # Define server logic
 function(input, output, session) {
@@ -112,7 +179,7 @@ function(input, output, session) {
   
   output$biclust_summ <- renderPrint({
     bic.res <- run.biclust()
-    return(bic.res)
+    return(summary(bic.res))
     # return("hi there")
   })
   
@@ -183,15 +250,16 @@ function(input, output, session) {
       # print(bc@RowxNumber)
       # print(bc@NumberxCol)
       
-      ones_counts <- colSums(d == 1)
-      col_ha = HeatmapAnnotation(Count = anno_barplot(ones_counts))
+      # ones_counts <- colSums(d == 1)
+      # col_ha = HeatmapAnnotation(Count = anno_barplot(ones_counts))
+      # 
+      # ht = Heatmap(d, 
+      #              cluster_rows = FALSE, 
+      #              top_annotation = col_ha)
+      # ht = draw(ht)
+      # 
+      # makeInteractiveComplexHeatmap(input, output, session, ht, "ht")
       
-      ht = Heatmap(d, 
-                   cluster_rows = FALSE, 
-                   top_annotation = col_ha)
-      ht = draw(ht)
-      
-      makeInteractiveComplexHeatmap(input, output, session, ht, "ht")
     }
   )
   
@@ -228,7 +296,7 @@ function(input, output, session) {
     return(s)
   })
   
-  output$bc.indiv.htmap <- renderPlot({
+  output$bc.indiv.htmap <- renderPlotly({
     
       bc.res <- run.biclust()
       data <- readData()
@@ -248,25 +316,26 @@ function(input, output, session) {
         }
       }
       
+      bin_enc_mat = createBinaryEncodedMatrix(cluster_array)
+      
+      unique_colors = createUniqueColors(num_bicluster)
+      
+      my_color_pallete = createCustomColorPallete(unique_colors)
+      
       if (is.null(clickData)){
-        plt.BC.heatmap <- heatmapBC(x = data,
-                                    bicResult = bc.res,
-                                    number = input$n_biclstrs,
-                                    local = FALSE,
-                                    order = FALSE,
-                                    outside = TRUE)
+        plt.BC.heatmap = plot_ly(z=bin_enc_mat,
+                                 colors = my_color_pallete,
+                                 type = "heatmap",
+                                 opacity = 0.5)
       } else {
-        plt.BC.heatmap = heatmap(1 * cluster_array[,,plt.number],
-                                 scale = "none",
-                                 Rowv = NA,
-                                 Colv = NA,
-                                 col = c("white", "red"),
-                                 main = "HeatMap for single bicluster",
-                                 labCol = colnames(data))
+        plt.BC.heatmap = plot_ly(z= 1 * cluster_array[,,plt.number],
+                                 colors = c("white", my_color_pallete[2^(plt.number-1) + 1]),
+                                 type = "heatmap",
+                                 opacity = 0.5)
       }
       return(plt.BC.heatmap)
       
-      },width = 900,height = 800)
+      })
   
   output$tsneplot.summary <- renderPrint({
     clickData <- event_data(event = "plotly_selected",
@@ -410,6 +479,49 @@ function(input, output, session) {
     mylines <- c(mylines, list(line))
     
     fig <- layout(fig, title = 'Highlighting with Lines', shapes = mylines)
+    return(fig)
+  })
+  
+  output$biclusterSimilarityDendogramPlot <- renderPlotly({
+    
+    cleanedData = readData()
+    resBIC = run.biclust()
+    numBIC = input$n_biclstrs
+    
+    BiMaxBiclustSet <-  BiclustSet(resBIC)
+    print((BiMaxBiclustSet))
+    SensitivityMatr<- similarity(BiMaxBiclustSet,index="sensitivity")
+    HCLMat <- HCLtree(SensitivityMatr)
+    dg = as.dendrogram(HCLMat)
+    p = ggdendrogram(dg, rotate = FALSE, size = 2)
+    plt = ggplotly(p)
+    
+    return(plt)
+    
+  })
+  
+  output$biclusterSimilarityBoxPlot <- renderPlotly({
+    resBIC = run.biclust()
+    numBIC = input$n_biclstrs
+    
+    BiMaxBiclustSet <-  BiclustSet(resBIC)
+    simMatr<- similarity(BiMaxBiclustSet,index="jaccard", type="both")
+    rownames(simMatr) <- paste("BC", 1:numBIC, sep = "")
+    colnames(simMatr) <- paste("BC", 1:numBIC, sep = "")
+    
+    print(simMatr)
+    
+    fig <- plot_ly(y=simMatr[1,], type = "box", name = "BC 1")
+    for (i in 2:(dim(simMatr)[1])) {
+      fig <- fig %>% add_trace(y=simMatr[i,], type = "box", name =  paste("BC", i))
+    }
+    fig <- fig %>% 
+      layout(
+        title = "Box Plot",
+        xaxis = list(title="x axis"),
+        yaxis = list(title="Y axis")
+      )
+    
     return(fig)
   })
 }

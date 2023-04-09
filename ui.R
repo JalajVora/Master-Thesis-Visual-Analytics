@@ -104,14 +104,22 @@ fluidPage(
                             hr(),
                             fluidRow(
                               column(6, plotlyOutput("bic.scatter", width = "300px", height = "300px")
-                                     ),
-                              column(6, plotOutput("bc.indiv.htmap")
+                                     ), br(), br(), br(),
+                              column(6, plotlyOutput("bc.indiv.htmap")
                                      ), br(), br(), br(),
                               ),
+                            fluidRow(
+                              column(6, plotlyOutput("biclusterSimilarityDendogramPlot")
+                            )
+                            ),
+                            fluidRow(
+                              column(6, plotlyOutput("biclusterSimilarityBoxPlot")
+                              )
                             ),
                    ),
                  ),
               ),
+      ),
       width=8,),
         ),
 )
