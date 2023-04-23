@@ -1,14 +1,18 @@
 library(shiny)
 library(plotly)
+library(shinythemes)
 library(ComplexHeatmap)
 library(InteractiveComplexHeatmap)
 
-fluidPage(
+fluidPage(theme = shinytheme(theme = "united"),
   
-  headerPanel("Semi-automated pattern detection in tabular data with weak hierarchies"),
+  # headerPanel("Semi-automated pattern detection in tabular data with weak hierarchies"),
+  navbarPage("Visual Analytics:",
+             tabPanel("Home",
   
   sidebarLayout(
     sidebarPanel(
+      tags$h3("Input:"),
       helpText("Please select a dataset to explore patterns"),
       selectInput('select_dataset', 'Select Dataset:', 
                   c("Story Classification" = "stry_clss",
@@ -37,7 +41,7 @@ fluidPage(
                          condition = "input.select_method == 'bimax'",
 
                          numericInput("n_biclstrs", "Number of Biclusters",
-                                       value = 2, 
+                                       value = 5, 
                                        min = 1, 
                                        max = 20, 
                                        step = 1),
@@ -61,22 +65,27 @@ fluidPage(
         tabPanel("t-SNE", 
                  headerPanel("Welcome to t-SNE"),
                  hr(),
-                 hr(),
                  fluidRow(
-                   column(6, style = "width: 500px;", plotlyOutput("tsnePlot")
+                   column(6, plotlyOutput("tsneScatterPlot")
                           ),br(), br(), br(),
-                   column(3, style = "width: 400px;", verbatimTextOutput("tsneplot.summary") ), br(),
-                   ),
+                   # column(3, style = "width: 400px;", verbatimTextOutput("tsneplot.summary") ), br(),
+                   ),br(), br(), br(),
                  hr(),
+                 # fluidRow(
+                 #   column(6, style = "width: 900px;", plotlyOutput("tsneUsageDeviationPlot")
+                 #   ),br(), br(), br(),
+                 # ),
+                 # hr(),
                  fluidRow(
-                   column(6, style = "width: 900px;", plotlyOutput("tsne.usage.dev.plot")
+                   column(6, style = "width: 900px;", plotlyOutput("tsneSimilarityPlot")
                    ),br(), br(), br(),
                  ),
-                 hr(),
-                 fluidRow(
-                   column(6, style = "width: 900px;", plotlyOutput("similarity.plot")
-                   ),br(), br(), br(),
-                 )
+                 # fluidRow(
+                 #   column(6, style = "width: 900px;", plotlyOutput("tsneSamplePlot")
+                 #   ),br(), br(), br(),
+                 #   # column(6, style = "width: 400px;", verbatimTextOutput("tsneSamplePrint")
+                 #   # ),br(), br(), br(),
+                 # )
                  ),
                  
         tabPanel("BiClustering", 
@@ -85,41 +94,61 @@ fluidPage(
                  tabsetPanel(id = "tabs",
                    tabPanel("Summary",
                             fluidRow(
-                              column(6, style = "width: 800px;", verbatimTextOutput("biclust_summ")
-                                     )
-                              ),
+                              column(6, style = "width: 800px;", verbatimTextOutput("biclust_summ"))
+                              ), hr(), br(), br(), br(), br(),
+                            fluidRow(
+                              column(6, InteractiveComplexHeatmapOutput(heatmap_id = "ht",
+                                                                        title1 = "Story Classification Data",
+                                                                        title2 = "Selected subset",
+                                                                        width1 = 750,
+                                                                        height1 = 700,
+                                                                        width2 = 500))
                             ),
-                   tabPanel("Heatmap",
-                           hr(),
-                           conditionalPanel("input.select_method == 'bimax'",
-                                            InteractiveComplexHeatmapOutput(heatmap_id = "ht",
-                                                                            title1 = "All BiClusters",
-                                                                            title2 = "Selected bicluster",
-                                                                            width1 = 650,
-                                                                            height1 = 450,
-                                                                            width2 = 500)
-                                            ),
-                           ),
-                   tabPanel("Scatterplot",
+                            ),
+                   # tabPanel("Heatmap",
+                   #         hr(),
+                   #         conditionalPanel("input.select_method == 'bimax'",
+                   #                          InteractiveComplexHeatmapOutput(heatmap_id = "ht",
+                   #                                                          title1 = "All BiClusters",
+                   #                                                          title2 = "Selected bicluster",
+                   #                                                          width1 = 650,
+                   #                                                          height1 = 450,
+                   #                                                          width2 = 500)
+                   #                          ),
+                   #         ),
+                   tabPanel("Bicluster Exploration",
+                            h4("Explore Biclusters found"),
                             hr(),
                             fluidRow(
-                              column(6, plotlyOutput("bic.scatter", width = "300px", height = "300px")
-                                     ), br(), br(), br(),
-                              column(6, plotlyOutput("bc.indiv.htmap")
+                              column(4, plotlyOutput("bic.scatter",
+                                                     width = "300px",
+                                                     height = "300px")
+                                     ),
+                              column(6, plotlyOutput("bc.indiv.htmap",
+                                                     width = "650px",
+                                                     height = "700px")
                                      ), br(), br(), br(),
                               ),
+                            hr(),
                             fluidRow(
-                              column(6, plotlyOutput("biclusterSimilarityDendogramPlot")
-                            )
+                              column(5, plotlyOutput("biclusterSimilarityDendogramPlot",
+                                                     width = "500px",
+                                                     height = "400px")),
+                              column(4, plotlyOutput("biclusterSimilarityBoxPlot",
+                                                     width = "600px",
+                                                     height = "500px"))
                             ),
-                            fluidRow(
-                              column(6, plotlyOutput("biclusterSimilarityBoxPlot")
-                              )
-                            ),
+                            # fluidRow(
+                            #   
+                            # ),
                    ),
                  ),
               ),
       ),
       width=8,),
         ),
+             ),
+  tabPanel("About"),
+             
+  )
 )

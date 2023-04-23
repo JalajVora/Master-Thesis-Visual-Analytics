@@ -1,4 +1,5 @@
 #
+
 # This is the server logic of a Shiny web application. You can run the
 # application by clicking 'Run App' above.
 #
@@ -23,7 +24,16 @@ library(colormod)
 
 url = "https://raw.githubusercontent.com/JalajVora/Master-Thesis-Visual-Analytics/main/data/Story_Classification_Data.csv"
 options (warn = -1)
+tsne_similarity_matrix = matrix()
 
+getCurrentTime = function() {
+  now = Sys.time()
+  return (as.numeric(now))
+}
+
+printTime = function(time) {
+  print(time, digits=20)
+}
 
 number2binary = function(number, noBits) {
   binary_vector = rev(as.numeric(intToBits(number)))
@@ -86,6 +96,21 @@ createBinaryEncodedMatrix = function(matrix_3d) {
   return(a)
 }
 
+createSimilarityMatrix = function(m) { # input matrix m has booleans
+  num_rows = dim(m)[1]
+  num_cols = dim(m)[2]
+  tsne_similarity_matrix <<- matrix(data=NA, nrow=num_rows, ncol=num_rows)
+  for (i in 1:num_rows) {
+    for (j in i:num_rows) {
+      if (i==j) {
+        next
+      }
+      xor_row = xor(m[i,],m[j,])
+      similarity_count = num_cols - sum(xor_row)
+      tsne_similarity_matrix[i,j] <<- as.double(similarity_count)/num_cols
+    }
+  }
+}
 
 # Define server logic
 function(input, output, session) {
@@ -120,6 +145,7 @@ function(input, output, session) {
     }
     
   })
+  
   
   readrawData <- reactive({
     
@@ -165,14 +191,6 @@ function(input, output, session) {
            #                      number=6)
            # },
     )
-    
-    
-    # bic.res <- biclust(x = readData(), 
-    #                    method=BCBimax(), 
-    #                    minr=4, 
-    #                    minc=4, 
-    #                    number=15
-    # )
 
     return(bic.res)
   })
@@ -180,18 +198,15 @@ function(input, output, session) {
   output$biclust_summ <- renderPrint({
     bic.res <- run.biclust()
     return(summary(bic.res))
-    # return("hi there")
   })
   
-  output$tsnePlot <- renderPlotly({
+  output$tsneScatterPlot <- renderPlotly({
     
     if (input$select_dataset == "stry_clss") {
       
       raw_data <- readrawData()
       theme_colors <- raw_data[,39]
       hover_info <- raw_data[,36]
-      # print(as.integer(row.names(raw_data)))
-      # print(c(1:dim(raw_data)[1]))
       
       p = plot_ly(source = "tsne_plot",
                   run.tsne(), 
@@ -208,7 +223,6 @@ function(input, output, session) {
                   ) %>%
         layout(
           selected = list(mode = "lasso"),
-          
           # Remove other selection modes
           hovermode = "closest",
           dragmode = FALSE,
@@ -216,6 +230,7 @@ function(input, output, session) {
           xaxis = list(title = "t-SNE Dimension 1"),
           yaxis = list(title = "t-SNE Dimension 2")
         )
+      createSimilarityMatrix(readData())
     }
     
     else {
@@ -233,8 +248,153 @@ function(input, output, session) {
                yaxis = list(title = "t-SNE Dimension 2")
         )
     }
-    
+    event_register(p = p, event = "plotly_selected")
     return(p)
+  })
+  
+  output$tsneUsageDeviationPlot <- renderPlotly({
+    
+    clickData <- event_data(event = "plotly_selected",
+                            source = "tsne_plot")
+    
+    if (is.null(clickData)) return(NULL)
+    
+    cleaned_data = as.data.frame(readData())
+    subset_data = as.data.frame(cleaned_data[clickData$customdata,])
+    cleaned_data_cols <- colnames(cleaned_data)
+    
+    
+    fig <- plotly_empty(x = cleaned_data,
+                        type="bar",
+                        mode = "markers",
+                        marker = list(color = "rgba(0,0,0,0)"))
+    
+    count.subset.cols = subset_data %>% summarise_all(sum)
+    percentage.subset.cols <- (count.subset.cols/dim(subset_data)[1])*100
+    merged.subset.df = rbind(count.subset.cols, percentage.subset.cols)
+    
+    count.cleaned.cols = cleaned_data %>% summarise_all(sum)
+    percentage.cleaned.cols <- (count.cleaned.cols/dim(cleaned_data)[1])*100
+    merged.cleaned.df = rbind(count.cleaned.cols, percentage.cleaned.cols)
+    
+    mylines <- list()
+    subset_lines <- list()
+    
+    for (col in c(1:length(merged.subset.df))) {
+      line = list(type = "line",
+                  line = list(color = "black", dash = "dot"),
+                  xref = "x",
+                  yref = "y",
+                  x0 = as.double(col)-0.25,
+                  x1 = as.double(col)+0.25,
+                  y0 = merged.cleaned.df[2,col],
+                  y1 = merged.cleaned.df[2,col])
+      mylines <- c(mylines, list(line))
+      line_color = "green"
+      if (merged.subset.df[2, col]<merged.cleaned.df[2, col]) {
+        line_color = "red"
+      }
+      
+      cl_line = list(type = "line",
+                     line = list(color = line_color),
+                     xref = "x",
+                     yref = "y",
+                     x0 = as.double(col)-0.25,
+                     x1 = as.double(col)+0.25,
+                     y0 = merged.subset.df[2,col],
+                     y1 = merged.subset.df[2,col])
+      mylines <- c(mylines, list(cl_line))
+      
+      myrect = list(type = "rect",
+                    line = list(color = line_color),
+                    opacity = 0.3,
+                    fillcolor = line_color,
+                    xref = "x",
+                    yref = "y",
+                    x0 = as.double(col)-0.25,
+                    x1 = as.double(col)+0.25,
+                    y0 = merged.cleaned.df[2,col],
+                    y1 = merged.subset.df[2,col])
+      mylines <- c(mylines, list(myrect))
+    }
+    
+    fig <- layout(fig,
+                  title = "Usage Deviation Plot",
+                  showlegend = FALSE,
+                  autosize = TRUE,
+                  xaxis = list(title = "Storytelling Techniques",
+                               autotypenumbers = 'strict'),
+                  yaxis = list(title = "Usage %",
+                               showgrid = TRUE),
+                  shapes = mylines)
+    
+    fig <- fig %>% layout(xaxis = list(
+        tickmode = "array",
+        tickvals = 1:length(cleaned_data_cols),
+        ticktext = cleaned_data_cols,
+        showgrid = TRUE))
+    
+    return(fig)
+    
+  })
+  
+  
+  output$tsneSimilarityPlot <- renderPlotly({
+    clickData <- event_data(event = "plotly_selected",
+                            source = "tsne_plot")
+    
+    if (is.null(clickData)) return(NULL)
+    
+    raw_data <- readrawData()
+    # theme_colors <- raw_data[,39]
+    cleaned_data = as.data.frame(readData())
+    # cleaned_data = as.data.frame(raw_data)
+    subset_data = as.data.frame(cleaned_data[clickData$customdata,])
+    fig <- plotly_empty(type="scatter", mode = "markers")
+
+    dim_c_2 = (dim(cleaned_data)[1] * (dim(cleaned_data)[1]-1))/2
+    total_similarity = sum(tsne_similarity_matrix, na.rm = TRUE)/dim_c_2
+    print(total_similarity)
+    
+    subset_similarity = double(dim(subset_data)[1])
+    for (i in 1:dim(subset_data)[1]) {
+      sum_similarity = sum(tsne_similarity_matrix[i,], na.rm=TRUE)
+                     + sum(tsne_similarity_matrix[,i], na.rm=TRUE)
+      subset_similarity[i] = sum_similarity/(dim(cleaned_data)[1]-1)
+    }
+    subset_similarity = subset_similarity*100
+    
+    fig = plot_ly(source = "scatter_plot",
+                  x = subset_similarity, 
+                  y = integer(dim(subset_data)[1]),
+                  type = "scatter", 
+                  mode = "markers",
+                  # color = theme_colors,
+                  marker = list(size = 10),
+                  showlegend = F,
+                  hoverinfo = 'text',
+                  text = paste0(round(subset_similarity,1), " %"))
+    
+    
+    mylines <- list()
+    line = list(type = "line",
+                line = list(color = "red", dash = "solid"),
+                xref = "x",
+                yref = "y",
+                x0 = total_similarity*100,
+                x1 = total_similarity*100,
+                y0 = 0,
+                y1 = 1)
+    mylines <- c(mylines, list(line))
+    
+    fig <- layout(fig,
+                  title = "Deviation of subset from overall average",
+                  xaxis = list(title = "Pairwise Similarity %",
+                               zeroline = TRUE,
+                               autotypenumbers = 'strict'),
+                  yaxis = list(showticklabels = FALSE),
+                  shapes = mylines)
+    return(fig)
   })
 
   
@@ -242,23 +402,24 @@ function(input, output, session) {
     input$select_method == 'bimax',
     {
       d = readData()
-      bc = run.biclust()
+      rownames(d) = paste0("Story ", 1:130)
+      # bc = run.biclust()
       
       # row_labels <- readrawData()
       # row.names(d) <- row_labels[,36]
-      
+
       # print(bc@RowxNumber)
       # print(bc@NumberxCol)
-      
-      # ones_counts <- colSums(d == 1)
-      # col_ha = HeatmapAnnotation(Count = anno_barplot(ones_counts))
-      # 
-      # ht = Heatmap(d, 
-      #              cluster_rows = FALSE, 
-      #              top_annotation = col_ha)
-      # ht = draw(ht)
-      # 
-      # makeInteractiveComplexHeatmap(input, output, session, ht, "ht")
+
+      ones_counts <- colSums(d == 1)
+      col_ha = HeatmapAnnotation(Count = anno_barplot(ones_counts))
+
+      ht = Heatmap(d,
+                   cluster_rows = FALSE,
+                   top_annotation = col_ha)
+      ht = draw(ht)
+      #
+      makeInteractiveComplexHeatmap(input, output, session, ht, "ht")
       
     }
   )
@@ -298,188 +459,71 @@ function(input, output, session) {
   
   output$bc.indiv.htmap <- renderPlotly({
     
-      bc.res <- run.biclust()
-      data <- readData()
-      
-      clickData <- event_data(event = "plotly_click",
-                              source = "scatter_plot")
-      plt.number <- as.numeric(clickData$pointNumber+1)
-      
-      num_rows = dim(data)[1]
-      num_cols = dim(data)[2]
-      num_bicluster = dim(bc.res@RowxNumber)[2]
-
-      cluster_array = array(dim=c(num_rows, num_cols, num_bicluster))
-      for (i in 1:num_rows) {
-        for (j in 1:num_cols) {
-          cluster_array[i,j,] = bc.res@RowxNumber[i,] & bc.res@NumberxCol[,j]
-        }
+    clickData <- event_data(event = "plotly_click",
+                            source = "scatter_plot",
+                            priority = c("input"))
+    start_time = getCurrentTime()
+    data <- readData()
+    rawData <- readrawData()
+    bc.res <- run.biclust()
+    after_biclust_time = getCurrentTime()
+    
+    plt.number <- as.numeric(clickData$pointNumber+1)
+    
+    num_rows = dim(data)[1]
+    num_cols = dim(data)[2]
+    # num_bicluster = dim(bc.res@RowxNumber)[2]
+    num_bicluster = bc.res@Number
+    
+    cluster_array = array(dim=c(num_rows, num_cols, num_bicluster))
+    for (i in 1:num_rows) {
+      for (j in 1:num_cols) {
+        cluster_array[i,j,] = bc.res@RowxNumber[i,] & bc.res@NumberxCol[,j]
       }
-      
-      bin_enc_mat = createBinaryEncodedMatrix(cluster_array)
-      
-      unique_colors = createUniqueColors(num_bicluster)
-      
-      my_color_pallete = createCustomColorPallete(unique_colors)
-      
-      if (is.null(clickData)){
-        plt.BC.heatmap = plot_ly(z=bin_enc_mat,
-                                 colors = my_color_pallete,
-                                 type = "heatmap",
-                                 opacity = 0.5)
-      } else {
-        plt.BC.heatmap = plot_ly(z= 1 * cluster_array[,,plt.number],
-                                 colors = c("white", my_color_pallete[2^(plt.number-1) + 1]),
-                                 type = "heatmap",
-                                 opacity = 0.5)
-      }
-      return(plt.BC.heatmap)
-      
-      })
-  
-  output$tsneplot.summary <- renderPrint({
-    clickData <- event_data(event = "plotly_selected",
-                            source = "tsne_plot")
+    }
+    after_cluster_array_init_time = getCurrentTime()
     
-    tsne_output <- run.tsne()
-    data = readrawData()
+    bin_enc_mat = createBinaryEncodedMatrix(cluster_array)
+    after_bin_enc_time = getCurrentTime()
     
-    sub_set = data[clickData$customdata,]
+    unique_colors = createUniqueColors(num_bicluster)
+    after_unique_colors_time = getCurrentTime()
     
-    return(sub_set$Title)
-  })
-  
-
-  output$tsne.usage.dev.plot <- renderPlotly({
+    my_color_pallete = createCustomColorPallete(unique_colors)
+    after_my_color_pallete_time = getCurrentTime()
     
-    clickData <- event_data(event = "plotly_selected",
-                            source = "tsne_plot")
+    rownames(data) = paste0("Story ", 1:130)
+    story_titles = rawData[,36]
     
-    cleaned_data = as.data.frame(readData())
-    subset_data = as.data.frame(cleaned_data[clickData$customdata,])
-    fig <- plotly_empty(type="scatter", mode = "markers")
-    if (dim(subset_data)[1]==0) {
-      return(fig)
+    if (is.null(clickData)){
+      plt.BC.heatmap = plot_ly(z=bin_enc_mat,
+                               x = colnames(data),
+                               y = rownames(data),
+                               colors = my_color_pallete,
+                               type = "heatmap",
+                               opacity = 0.5,
+                               showlegend = T,
+                               showscale = FALSE,
+                               hoverinfo = 'none')
+    } else {
+      plt.BC.heatmap = plot_ly(z= 1 * cluster_array[,,plt.number],
+                               x = colnames(data),
+                               y = rownames(data),
+                               colors = c("white",
+                                          my_color_pallete[2^(plt.number-1) + 1]),
+                               type = "heatmap",
+                               opacity = 0.5,
+                               showlegend = T,
+                               showscale = FALSE,
+                               hoverinfo = 'none')
     }
     
+    plt.BC.heatmap <- plt.BC.heatmap %>% 
+      layout(title = 'Selected Bicluster',
+             xaxis = list(title = 'Storytelling Techniques'), 
+             yaxis = list(title = 'Stories'))
     
-    count.subset.cols = subset_data %>% summarise_all(sum)
-    percentage.subset.cols <- (count.subset.cols/dim(subset_data)[1])*100
-    merged.subset.df = rbind(count.subset.cols, percentage.subset.cols)
-    
-    count.cleaned.cols = cleaned_data %>% summarise_all(sum)
-    percentage.cleaned.cols <- (count.cleaned.cols/dim(cleaned_data)[1])*100
-    merged.cleaned.df = rbind(count.cleaned.cols, percentage.cleaned.cols)
-    
-    mylines <- list()
-    subset_lines <- list()
-    
-    for (col in c(1:length(merged.subset.df))) {
-      line = list(type = "line",
-                  line = list(color = "black", dash = "dot"),
-                  xref = "x",
-                  yref = "y",
-                  x0 = as.double(col)-0.25,
-                  x1 = as.double(col)+0.25,
-                  y0 = merged.cleaned.df[2,col],
-                  y1 = merged.cleaned.df[2,col])
-      mylines <- c(mylines, list(line))
-      line_color = "green"
-      if (merged.subset.df[2, col]<merged.cleaned.df[2, col]) {
-        line_color = "red"
-      }
-      
-      cl_line = list(type = "line",
-                  line = list(color = line_color),
-                  xref = "x",
-                  yref = "y",
-                  x0 = as.double(col)-0.25,
-                  x1 = as.double(col)+0.25,
-                  y0 = merged.subset.df[2,col],
-                  y1 = merged.subset.df[2,col])
-      mylines <- c(mylines, list(cl_line))
-      
-      myrect = list(type = "rect",
-                  line = list(color = line_color),
-                  opacity = 0.3,
-                  fillcolor = line_color,
-                  xref = "x",
-                  yref = "y",
-                  x0 = as.double(col)-0.25,
-                  x1 = as.double(col)+0.25,
-                  y0 = merged.cleaned.df[2,col],
-                  y1 = merged.subset.df[2,col])
-      mylines <- c(mylines, list(myrect))
-    }
-    
-    fig <- layout(fig, title = 'Highlighting with Lines', shapes = mylines)
-    
-    return(fig)
-    
-  })
-  
-  output$similarity.plot <- renderPlotly({
-    clickData <- event_data(event = "plotly_selected",
-                            source = "tsne_plot")
-    
-    cleaned_data = as.data.frame(readData())
-    subset_data = as.data.frame(cleaned_data[clickData$customdata,])
-    fig <- plotly_empty(type="scatter", mode = "markers")
-    if (dim(subset_data)[1]==0) {
-      return(fig)
-    }
-    
-    total_similarity = 0.0
-    # for (i in 1:dim(cleaned_data)[1]) {
-    #   for (j in i:dim(cleaned_data)[1]) {
-    #     if (i==j) {
-    #       next
-    #     }
-    #     xor_row = xor(cleaned_data[i,],cleaned_data[j,])
-    #     similarity_count = dim(cleaned_data)[2] - sum(xor_row)
-    #     
-    #     total_similarity = total_similarity + (as.double(similarity_count)/dim(cleaned_data)[2])
-    #   }
-    # }
-    # dim_c_2 = (dim(cleaned_data)[1] * dim(cleaned_data)[1]-1)/2
-    # total_similarity = total_similarity/dim_c_2
-    
-    subset_similarity = double(dim(subset_data)[1])
-    for (i in 1:dim(subset_data)[1]) {
-      for (j in 1:dim(cleaned_data)[1]) {
-        if (i==j) {
-          next
-        }
-        xor_row = xor(subset_data[i,],cleaned_data[j,])
-        similarity_count = dim(cleaned_data)[2] - sum(xor_row)
-        subset_similarity[i] = subset_similarity[i] + (as.double(similarity_count)/dim(subset_data)[2])
-      }
-      subset_similarity[i] = subset_similarity[i]/(dim(cleaned_data)[1]-1)
-    }
-    subset_similarity = subset_similarity*100
-    
-    fig = plot_ly(source = "scatter_plot",
-                x = subset_similarity, 
-                y = integer(dim(subset_data)[1]),
-                type = "scatter", 
-                mode = "markers",
-                marker = list(size = 10),
-                showlegend = F)
-    
-    
-    mylines <- list()
-    line = list(type = "line",
-                line = list(color = "red", dash = "solid"),
-                xref = "x",
-                yref = "y",
-                x0 = total_similarity*100,
-                x1 = total_similarity*100,
-                y0 = -1,
-                y1 = 1)
-    mylines <- c(mylines, list(line))
-    
-    fig <- layout(fig, title = 'Highlighting with Lines', shapes = mylines)
-    return(fig)
+    return(plt.BC.heatmap)
   })
   
   output$biclusterSimilarityDendogramPlot <- renderPlotly({
@@ -489,39 +533,43 @@ function(input, output, session) {
     numBIC = input$n_biclstrs
     
     BiMaxBiclustSet <-  BiclustSet(resBIC)
-    print((BiMaxBiclustSet))
     SensitivityMatr<- similarity(BiMaxBiclustSet,index="sensitivity")
+    rownames(SensitivityMatr) = colnames(SensitivityMatr) = paste0("BC ", 1:numBIC)
+    # print(SensitivityMatr)
     HCLMat <- HCLtree(SensitivityMatr)
     dg = as.dendrogram(HCLMat)
     p = ggdendrogram(dg, rotate = FALSE, size = 2)
-    plt = ggplotly(p)
+    plt = ggplotly(p, dynamicTicks = FALSE) %>%
+      layout(title = 'Bicluster Ranking',
+             xaxis = list(title = 'Biclusters'), 
+             yaxis = list(title = 'Jaccardian Similarity Index'))
     
     return(plt)
     
   })
   
-  output$biclusterSimilarityBoxPlot <- renderPlotly({
-    resBIC = run.biclust()
-    numBIC = input$n_biclstrs
-    
-    BiMaxBiclustSet <-  BiclustSet(resBIC)
-    simMatr<- similarity(BiMaxBiclustSet,index="jaccard", type="both")
-    rownames(simMatr) <- paste("BC", 1:numBIC, sep = "")
-    colnames(simMatr) <- paste("BC", 1:numBIC, sep = "")
-    
-    print(simMatr)
-    
-    fig <- plot_ly(y=simMatr[1,], type = "box", name = "BC 1")
-    for (i in 2:(dim(simMatr)[1])) {
-      fig <- fig %>% add_trace(y=simMatr[i,], type = "box", name =  paste("BC", i))
-    }
-    fig <- fig %>% 
-      layout(
-        title = "Box Plot",
-        xaxis = list(title="x axis"),
-        yaxis = list(title="Y axis")
-      )
-    
-    return(fig)
-  })
+  # output$biclusterSimilarityBoxPlot <- renderPlotly({
+  #   resBIC = run.biclust()
+  #   numBIC = input$n_biclstrs
+  #   
+  #   BiMaxBiclustSet <-  BiclustSet(resBIC)
+  #   simMatr<- similarity(BiMaxBiclustSet,index="jaccard", type="both")
+  #   rownames(simMatr) <- paste("BC", 1:numBIC, sep = "")
+  #   colnames(simMatr) <- paste("BC", 1:numBIC, sep = "")
+  #   
+  #   fig <- plot_ly(y=simMatr[1,], type = "box", name = "BC 1")
+  #   for (i in 2:(dim(simMatr)[1])) {
+  #     fig <- fig %>% add_trace(y=simMatr[i,], type = "box", name =  paste("BC", i))
+  #   }
+  #   fig <- fig %>% 
+  #     layout(
+  #       title = "Similarity of Biclusters",
+  #       xaxis = list(title="Biclusters"),
+  #       yaxis = list(title="Jaccardian Similarity Index")
+  #     )
+  #   
+  #   return(fig)
+  # })
+  
+  
 }
