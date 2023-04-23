@@ -60,26 +60,10 @@ createCustomColorPallete = function(unique_colors) {
   num_colors = dim(unique_colors)[2]
   all_colors = list()
   all_colors = append(all_colors, "#FFFFFF80")
-  for (i in 1:((2^num_colors)-1)) {
-    bits = number2binary(i, num_colors)
-    sum_red = 0
-    sum_green = 0
-    sum_blue = 0
-    colors_added = 0
-    for (j in 1:num_colors) {
-      index = num_colors+1-j
-      if (bits[j] == 1) {
-        sum_red = sum_red + unique_colors[1,index]
-        sum_green = sum_green + unique_colors[2,index]
-        sum_blue = sum_blue + unique_colors[3,index]
-        colors_added = colors_added + 1
-      }
-    }
-    red_value = as.integer(sum_red / colors_added)
-    green_value = as.integer(sum_green / colors_added)
-    blue_value = as.integer(sum_blue / colors_added)
-    all_colors = append(all_colors, rgb(red_value, green_value, blue_value, 128, maxColorValue = 255))
+  for (i in 1:num_colors) {
+    all_colors = append(all_colors, rgb(unique_colors[1,i], unique_colors[2,i], unique_colors[3,i], 128, maxColorValue = 255))
   }
+  all_colors = append(all_colors, "#00000080")
   return(as.character(all_colors))
 }
 
@@ -88,10 +72,19 @@ createBinaryEncodedMatrix = function(matrix_3d) {
   num_cols = dim(matrix_3d)[2]
   num_bicluster = dim(matrix_3d)[3]
   a = array(data=0, dim=c(num_rows, num_cols))
-  for (i in 0:(num_bicluster-1)) {
-    multiplier = 2^i
-    multiplied_array= multiplier * matrix_3d[,,i+1]
-    a = a + multiplied_array
+  for (i in 1:num_rows) {
+    for (j in 1:num_cols) {
+      for (k in 1:num_bicluster) {
+        if (matrix_3d[i,j,k] == 1){
+          if (a[i,j] == 0){
+            a[i,j] = k
+          }
+          else{
+            a[i,j] = num_bicluster+1
+          }
+        }
+      }
+    }
   }
   return(a)
 }
@@ -354,7 +347,6 @@ function(input, output, session) {
 
     dim_c_2 = (dim(cleaned_data)[1] * (dim(cleaned_data)[1]-1))/2
     total_similarity = sum(tsne_similarity_matrix, na.rm = TRUE)/dim_c_2
-    print(total_similarity)
     
     subset_similarity = double(dim(subset_data)[1])
     for (i in 1:dim(subset_data)[1]) {
@@ -510,7 +502,7 @@ function(input, output, session) {
                                x = colnames(data),
                                y = rownames(data),
                                colors = c("white",
-                                          my_color_pallete[2^(plt.number-1) + 1]),
+                                          my_color_pallete[plt.number+1]),
                                type = "heatmap",
                                opacity = 0.5,
                                showlegend = T,

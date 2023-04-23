@@ -71,11 +71,11 @@ fluidPage(theme = shinytheme(theme = "united"),
                    # column(3, style = "width: 400px;", verbatimTextOutput("tsneplot.summary") ), br(),
                    ),br(), br(), br(),
                  hr(),
-                 # fluidRow(
-                 #   column(6, style = "width: 900px;", plotlyOutput("tsneUsageDeviationPlot")
-                 #   ),br(), br(), br(),
-                 # ),
-                 # hr(),
+                 fluidRow(
+                   column(6, style = "width: 900px;", plotlyOutput("tsneUsageDeviationPlot")
+                   ),br(), br(), br(),
+                 ),
+                 hr(),
                  fluidRow(
                    column(6, style = "width: 900px;", plotlyOutput("tsneSimilarityPlot")
                    ),br(), br(), br(),
@@ -123,9 +123,9 @@ fluidPage(theme = shinytheme(theme = "united"),
                               column(4, plotlyOutput("bic.scatter",
                                                      width = "300px",
                                                      height = "300px")
-                                     ),
-                              column(6, plotlyOutput("bc.indiv.htmap",
-                                                     width = "650px",
+                                     ), br(), br(),
+                              column(5, plotlyOutput("bc.indiv.htmap",
+                                                     width = "500px",
                                                      height = "700px")
                                      ), br(), br(), br(),
                               ),
