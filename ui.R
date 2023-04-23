@@ -125,7 +125,7 @@ fluidPage(theme = shinytheme(theme = "united"),
                                                      height = "300px")
                                      ), br(), br(),
                               column(5, plotlyOutput("bc.indiv.htmap",
-                                                     width = "500px",
+                                                     width = "300px",
                                                      height = "700px")
                                      ), br(), br(), br(),
                               ),

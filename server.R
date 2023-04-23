@@ -423,6 +423,13 @@ function(input, output, session) {
     
     bic.rowxcol <- data.frame(matrix(nrow = num_of_bic, ncol=2))
     colnames(bic.rowxcol) <- c("row_count", "col_count")
+    unique_colors = createUniqueColors(num_of_bic)
+    my_color_pallete = createCustomColorPallete(unique_colors)
+    print("Scatter colors before indexing: ")
+    print(my_color_pallete)
+    my_color_pallete = my_color_pallete[-1][-(num_of_bic+1)]
+    print("Scatter colors after indexing: ")
+    print(my_color_pallete)
     
     # Get the number of rows and columns in each bicluster
     for (i in 1:num_of_bic) {
@@ -436,8 +443,11 @@ function(input, output, session) {
                  y = ~col_count,
                  type = "scatter", 
                  mode = "markers",
+                 color = as.numeric(row.names(bic.rowxcol)),
+                 colors = my_color_pallete,
                  marker = list(size = 10),
-                 showlegend = F
+                 showlegend = F,
+                 customdata = c(1:length(bic.rowxcol$row_count))
                  ) %>% 
       config(modeBarButtonsToRemove = c('zoom','zoomin', 
                                         'zoomOut', 'pan2d', 'zoomOut2d')) %>%
@@ -459,8 +469,14 @@ function(input, output, session) {
     rawData <- readrawData()
     bc.res <- run.biclust()
     after_biclust_time = getCurrentTime()
-    
-    plt.number <- as.numeric(clickData$pointNumber+1)
+    print(clickData)
+    plt.number <- as.numeric(clickData$customdata)
+    print(plt.number)
+    if (!is.null(clickData) && (length(plt.number)>0) && (plt.number > bc.res@Number)) {
+      clickData <- NULL
+    }
+    # print(clickData$customdata)
+    # subset_data = as.data.frame(cleaned_data[clickData$customdata,])
     
     num_rows = dim(data)[1]
     num_cols = dim(data)[2]
@@ -482,6 +498,8 @@ function(input, output, session) {
     after_unique_colors_time = getCurrentTime()
     
     my_color_pallete = createCustomColorPallete(unique_colors)
+    print(my_color_pallete)
+    print(plt.number)
     after_my_color_pallete_time = getCurrentTime()
     
     rownames(data) = paste0("Story ", 1:130)
