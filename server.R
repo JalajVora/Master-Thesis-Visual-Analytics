@@ -1,5 +1,4 @@
 #
-
 # This is the server logic of a Shiny web application. You can run the
 # application by clicking 'Run App' above.
 #
@@ -339,10 +338,11 @@ function(input, output, session) {
     if (is.null(clickData)) return(NULL)
     
     raw_data <- readrawData()
-    # theme_colors <- raw_data[,39]
     cleaned_data = as.data.frame(readData())
-    # cleaned_data = as.data.frame(raw_data)
     subset_data = as.data.frame(cleaned_data[clickData$customdata,])
+    theme_colors <- raw_data[clickData$customdata,39]
+    
+    
     fig <- plotly_empty(type="scatter", mode = "markers")
 
     dim_c_2 = (dim(cleaned_data)[1] * (dim(cleaned_data)[1]-1))/2
@@ -361,9 +361,9 @@ function(input, output, session) {
                   y = integer(dim(subset_data)[1]),
                   type = "scatter", 
                   mode = "markers",
-                  # color = theme_colors,
+                  color = theme_colors,
                   marker = list(size = 10),
-                  showlegend = F,
+                  showlegend = T,
                   hoverinfo = 'text',
                   text = paste0(round(subset_similarity,1), " %"))
     
@@ -425,11 +425,7 @@ function(input, output, session) {
     colnames(bic.rowxcol) <- c("row_count", "col_count")
     unique_colors = createUniqueColors(num_of_bic)
     my_color_pallete = createCustomColorPallete(unique_colors)
-    print("Scatter colors before indexing: ")
-    print(my_color_pallete)
     my_color_pallete = my_color_pallete[-1][-(num_of_bic+1)]
-    print("Scatter colors after indexing: ")
-    print(my_color_pallete)
     
     # Get the number of rows and columns in each bicluster
     for (i in 1:num_of_bic) {
@@ -440,13 +436,14 @@ function(input, output, session) {
     s <- plot_ly(source = "scatter_plot",
                  bic.rowxcol, 
                  x = ~row_count, 
-                 y = ~col_count,
+                 y = ~jitter(col_count),
                  type = "scatter", 
                  mode = "markers",
                  color = as.numeric(row.names(bic.rowxcol)),
                  colors = my_color_pallete,
                  marker = list(size = 10),
                  showlegend = F,
+                 showscale = FALSE,
                  customdata = c(1:length(bic.rowxcol$row_count))
                  ) %>% 
       config(modeBarButtonsToRemove = c('zoom','zoomin', 
@@ -454,7 +451,7 @@ function(input, output, session) {
       layout(xaxis = list(title = "Row Count"),
              yaxis = list(title = "Column Count"),
              title = "Bicluster Row and Column Counts",
-             hovermode = "closest")
+             hovermode = "closest") %>% hide_colorbar()
     
     return(s)
   })
@@ -469,9 +466,7 @@ function(input, output, session) {
     rawData <- readrawData()
     bc.res <- run.biclust()
     after_biclust_time = getCurrentTime()
-    print(clickData)
     plt.number <- as.numeric(clickData$customdata)
-    print(plt.number)
     if (!is.null(clickData) && (length(plt.number)>0) && (plt.number > bc.res@Number)) {
       clickData <- NULL
     }
@@ -489,7 +484,6 @@ function(input, output, session) {
         cluster_array[i,j,] = bc.res@RowxNumber[i,] & bc.res@NumberxCol[,j]
       }
     }
-    after_cluster_array_init_time = getCurrentTime()
     
     bin_enc_mat = createBinaryEncodedMatrix(cluster_array)
     after_bin_enc_time = getCurrentTime()
@@ -498,8 +492,6 @@ function(input, output, session) {
     after_unique_colors_time = getCurrentTime()
     
     my_color_pallete = createCustomColorPallete(unique_colors)
-    print(my_color_pallete)
-    print(plt.number)
     after_my_color_pallete_time = getCurrentTime()
     
     rownames(data) = paste0("Story ", 1:130)
