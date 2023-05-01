@@ -461,21 +461,18 @@ function(input, output, session) {
     clickData <- event_data(event = "plotly_click",
                             source = "scatter_plot",
                             priority = c("input"))
-    start_time = getCurrentTime()
+
     data <- readData()
     rawData <- readrawData()
     bc.res <- run.biclust()
-    after_biclust_time = getCurrentTime()
     plt.number <- as.numeric(clickData$customdata)
+    
     if (!is.null(clickData) && (length(plt.number)>0) && (plt.number > bc.res@Number)) {
       clickData <- NULL
     }
-    # print(clickData$customdata)
-    # subset_data = as.data.frame(cleaned_data[clickData$customdata,])
     
     num_rows = dim(data)[1]
     num_cols = dim(data)[2]
-    # num_bicluster = dim(bc.res@RowxNumber)[2]
     num_bicluster = bc.res@Number
     
     cluster_array = array(dim=c(num_rows, num_cols, num_bicluster))
@@ -486,13 +483,8 @@ function(input, output, session) {
     }
     
     bin_enc_mat = createBinaryEncodedMatrix(cluster_array)
-    after_bin_enc_time = getCurrentTime()
-    
     unique_colors = createUniqueColors(num_bicluster)
-    after_unique_colors_time = getCurrentTime()
-    
     my_color_pallete = createCustomColorPallete(unique_colors)
-    after_my_color_pallete_time = getCurrentTime()
     
     rownames(data) = paste0("Story ", 1:130)
     story_titles = rawData[,36]

@@ -120,23 +120,24 @@ fluidPage(theme = shinytheme(theme = "united"),
                             h4("Explore Biclusters found"),
                             hr(),
                             fluidRow(
-                              column(4, plotlyOutput("bic.scatter",
-                                                     width = "300px",
-                                                     height = "300px")
-                                     ), br(), br(),
-                              column(5, plotlyOutput("bc.indiv.htmap",
-                                                     width = "300px",
-                                                     height = "700px")
-                                     ), br(), br(), br(),
+                              column(6, plotlyOutput("bic.scatter",
+                                                     width = "100%",
+                                                     height = "60%")
+                                     ),
+                              column(6, plotlyOutput("bc.indiv.htmap",
+                                                     width = "100%",
+                                                     height = "100%"),
+                                     # offset = 1,
+                                     ),
                               ),
                             hr(),
                             fluidRow(
-                              column(5, plotlyOutput("biclusterSimilarityDendogramPlot",
-                                                     width = "500px",
-                                                     height = "400px")),
-                              column(4, plotlyOutput("biclusterSimilarityBoxPlot",
-                                                     width = "600px",
-                                                     height = "500px"))
+                              column(12, plotlyOutput("biclusterSimilarityDendogramPlot",
+                                                     width = '100%',
+                                                     height = '100%')),
+                              # column(4, plotlyOutput("biclusterSimilarityBoxPlot",
+                              #                        width = "600px",
+                              #                        height = "500px"))
                             ),
                             # fluidRow(
                             #   
