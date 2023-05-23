@@ -7,8 +7,7 @@ library(InteractiveComplexHeatmap)
 fluidPage(theme = shinytheme(theme = "united"),
   
   # headerPanel("Semi-automated pattern detection in tabular data with weak hierarchies"),
-  navbarPage("Visual Analytics:",
-             tabPanel("Home",
+  navbarPage(title="Pattern Detection in Tabular Data with Flat Taxonomies: A Visual Analytics Case Study",
   
   sidebarLayout(
     sidebarPanel(
@@ -41,25 +40,25 @@ fluidPage(theme = shinytheme(theme = "united"),
                          condition = "input.select_method == 'bimax'",
 
                          numericInput("n_biclstrs", "Number of Biclusters",
-                                       value = 5, 
+                                       value = 25, 
                                        min = 1, 
-                                       max = 20, 
+                                       max = 100, 
                                        step = 1),
                           br(),
                           numericInput("minr", "Minimum number of rows",
                                        value = 4, 
                                        min = 2, 
-                                       max = 100, 
+                                       max = 130, 
                                        step = 1),
                           br(),
                           numericInput("mincol", 
                                        "Minimum number of Columns",
                                        value = 4, 
                                        min = 2, 
-                                       max = 50, 
+                                       max = 35, 
                                        step = 1)),
                         ),
-    width=2),
+    width=3),
     mainPanel(
       tabsetPanel(id = "algorithms",
         tabPanel("t-SNE", 
@@ -149,7 +148,5 @@ fluidPage(theme = shinytheme(theme = "united"),
       width=8,),
         ),
              ),
-  tabPanel("About"),
              
-  )
 )

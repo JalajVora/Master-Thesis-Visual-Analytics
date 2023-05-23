@@ -6,7 +6,12 @@
 #
 #    http://shiny.rstudio.com/
 #
-
+# install.packages("BiocManager")
+if (!require("remotes", quietly = TRUE))
+  install.packages("remotes")
+if (!require("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+library(remotes)
 library(shiny)
 library(Rtsne)
 library(biclust)
@@ -15,10 +20,15 @@ library(ggplot2)
 library(ggdendro)
 library(curl)
 library(dplyr)
+library(BiocManager)
+# remotes::install_bioc("fabia")
 library(superbiclust)
 library(fabia)
+# remotes::install_bioc("ComplexHeatmap")
 library(ComplexHeatmap)
+# remotes::install_bioc("InteractiveComplexHeatmap")
 library(InteractiveComplexHeatmap)
+# remotes::install_github("briandconnelly/colormod")
 library(colormod)
 
 url = "https://raw.githubusercontent.com/JalajVora/Master-Thesis-Visual-Analytics/main/data/Story_Classification_Data.csv"
@@ -200,6 +210,7 @@ function(input, output, session) {
       theme_colors <- raw_data[,39]
       hover_info <- raw_data[,36]
       
+      
       p = plot_ly(source = "tsne_plot",
                   run.tsne(), 
                   x = ~tsne_x, 
@@ -341,6 +352,7 @@ function(input, output, session) {
     cleaned_data = as.data.frame(readData())
     subset_data = as.data.frame(cleaned_data[clickData$customdata,])
     theme_colors <- raw_data[clickData$customdata,39]
+    stories <- raw_data[clickData$customdata,36]
     
     
     fig <- plotly_empty(type="scatter", mode = "markers")
@@ -365,7 +377,8 @@ function(input, output, session) {
                   marker = list(size = 10),
                   showlegend = T,
                   hoverinfo = 'text',
-                  text = paste0(round(subset_similarity,1), " %"))
+                  # text = paste0(round(subset_similarity,1), " %"),
+                  text = stories)
     
     
     mylines <- list()
@@ -395,14 +408,7 @@ function(input, output, session) {
     {
       d = readData()
       rownames(d) = paste0("Story ", 1:130)
-      # bc = run.biclust()
       
-      # row_labels <- readrawData()
-      # row.names(d) <- row_labels[,36]
-
-      # print(bc@RowxNumber)
-      # print(bc@NumberxCol)
-
       ones_counts <- colSums(d == 1)
       col_ha = HeatmapAnnotation(Count = anno_barplot(ones_counts))
 
@@ -433,24 +439,29 @@ function(input, output, session) {
       bic.rowxcol[i, 2] <- sum(bic.res@NumberxCol[i,] != 0)
     }
     
+    rownames(bic.rowxcol) <- paste("BC", 1:num_of_bic, sep = "")
+    
     s <- plot_ly(source = "scatter_plot",
                  bic.rowxcol, 
                  x = ~row_count, 
                  y = ~jitter(col_count),
                  type = "scatter", 
                  mode = "markers",
-                 color = as.numeric(row.names(bic.rowxcol)),
+                 # color = as.numeric(row.names(bic.rowxcol)),
+                 color = as.numeric(c(1:num_of_bic)),
                  colors = my_color_pallete,
                  marker = list(size = 10),
+                 text = rownames(bic.rowxcol),
+                 hoverinfo = 'text',
                  showlegend = F,
                  showscale = FALSE,
                  customdata = c(1:length(bic.rowxcol$row_count))
                  ) %>% 
       config(modeBarButtonsToRemove = c('zoom','zoomin', 
                                         'zoomOut', 'pan2d', 'zoomOut2d')) %>%
-      layout(xaxis = list(title = "Row Count"),
-             yaxis = list(title = "Column Count"),
-             title = "Bicluster Row and Column Counts",
+      layout(xaxis = list(title = "# of Rows"),
+             yaxis = list(title = "# of Columns"),
+             title = "Biclusters",
              hovermode = "closest") %>% hide_colorbar()
     
     return(s)
