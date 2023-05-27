@@ -121,7 +121,7 @@ function(input, output, session) {
   readData <- reactive({
     
     if (input$select_dataset == "stry_clss") {
-      d <- read.csv(curl(url))
+      d <- read.csv(curl("https://raw.githubusercontent.com/JalajVora/Master-Thesis-Visual-Analytics/main/data/Story_Classification_Data.csv"))
       d <- d[,1:35]
       d <- d[, sapply(d, is.numeric)]
       d[is.na(d)] <- 0
@@ -152,14 +152,15 @@ function(input, output, session) {
   readrawData <- reactive({
     
     if (input$select_dataset == "stry_clss") {
-      d <- read.csv("~/Master Thesis/Story_Classification_Data.csv")
+      d <- read.csv(curl("https://raw.githubusercontent.com/JalajVora/Master-Thesis-Visual-Analytics/main/data/Story_Classification_Data_raw.csv"))
+      
       return(d)
     }
   })
 
   run.tsne <- reactive({
     
-    if (input$norm == "norm") {
+    if (input$select_dataset == "stry_clss" && input$norm == "norm") {
       data.norm <- readData()
       data.norm = subset(data.norm, select = -c(Genre, Communicating.Narrative.and.Explaining.Data, Linking.Separated.Story.Elements, Providing.Context.and.Navigation, Providing.Controlled.Exploration, Visual.Encoding.of.Space.Time))
       data.norm[,1:3] = data.norm[,1:3]*(1/3)
