@@ -7,10 +7,10 @@
 #    http://shiny.rstudio.com/
 #
 # install.packages("BiocManager")
-if (!require("remotes", quietly = TRUE))
-  install.packages("remotes")
-if (!require("BiocManager", quietly = TRUE))
-  install.packages("BiocManager")
+# if (!require("remotes", quietly = TRUE))
+#   install.packages("remotes")
+# if (!require("BiocManager", quietly = TRUE))
+#   install.packages("BiocManager")
 library(remotes)
 library(shiny)
 library(Rtsne)
@@ -153,15 +153,29 @@ function(input, output, session) {
     
     if (input$select_dataset == "stry_clss") {
       d <- read.csv("~/Master Thesis/Story_Classification_Data.csv")
-      
       return(d)
     }
   })
 
   run.tsne <- reactive({
     
+    if (input$norm == "norm") {
+      data.norm <- readData()
+      data.norm = subset(data.norm, select = -c(Genre, Communicating.Narrative.and.Explaining.Data, Linking.Separated.Story.Elements, Providing.Context.and.Navigation, Providing.Controlled.Exploration, Visual.Encoding.of.Space.Time))
+      data.norm[,1:3] = data.norm[,1:3]*(1/3)
+      data.norm[,4:10] = data.norm[,4:10]*(1/7)
+      data.norm[,11:13] = data.norm[,11:13]*(1/3)
+      data.norm[,14:21] = data.norm[,14:21]*(1/8)
+      data.norm[,22:24] = data.norm[,22:24]*(1/3)
+      data.norm[,25:29] = data.norm[,25:29]*(1/5)
+      data <- data.norm
+    }
+    else{
+      data <- readData()
+    }
+
     #input parameters to run t-SNE
-    tsne_output <- Rtsne(readData(), check_duplicates= FALSE, 
+    tsne_output <- Rtsne(data, check_duplicates= FALSE, 
                          max_iter = input$n_iters, 
                          perplexity=input$perplexity)
     
