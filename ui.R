@@ -3,8 +3,8 @@ library(plotly)
 library(shinythemes)
 
 fluidPage(theme = shinytheme(theme = "united"),
-  navbarPage(title="Pattern Detection in Tabular Data with Flat Taxonomies: A Visual Analytics Case Study",
-  
+  # navbarPage(title="Pattern Detection in Tabular Data with Flat Taxonomies: A Visual Analytics Case Study",
+  headerPanel('Pattern Detection in Tabular Data with Flat Taxonomies: A Visual Analytics Case Study'),
   sidebarLayout(
     sidebarPanel(
       tags$h3("Input:"),
@@ -15,10 +15,11 @@ fluidPage(theme = shinytheme(theme = "united"),
                     "Lower Triangle" = "lwr_trngl")),
       hr(),
       
-      conditionalPanel("input.algorithms == 't-SNE' && input.select_dataset == 'stry_clss'",
+      conditionalPanel("input.algorithms == 't-SNE'",
+                       conditionalPanel("input.select_dataset == 'stry_clss'",
                        radioButtons("norm", 
                                     "Apply Hierarchichal Normalization:",
-                                    c("No" = "unif", "Yes" = "norm")),
+                                    c("No" = "unif", "Yes" = "norm")),),
                        hr(),
                        helpText("Maximum number of iterations for the optimization"),
                        sliderInput("n_iters", "Number of iterations", 
@@ -33,7 +34,7 @@ fluidPage(theme = shinytheme(theme = "united"),
                                    value = 5, 
                                    step = 2),
                        hr(),),
-      conditionalPanel("input.algorithms == 'BiClustering'",
+      conditionalPanel("input.algorithms == 'BiClustering' && input.select_dataset == 'stry_clss'",
                        selectInput('select_method', 'Select BiClustering Method:',
                                    c("BiMax" = "bimax")),
                        conditionalPanel(
@@ -80,35 +81,35 @@ fluidPage(theme = shinytheme(theme = "united"),
                  ),
                  ),
                  
-        tabPanel("BiClustering", 
-                 headerPanel("Welcome to Biclustering"),
-                 
-                 tabsetPanel(id = "tabs",
-                   tabPanel("Bicluster Exploration",
-                            h4("Explore Biclusters found"),
-                            hr(),
-                            fluidRow(
-                              column(6, plotlyOutput("bic.scatter",
-                                                     width = "100%",
-                                                     height = "60%")
-                                     ),
-                              column(6, plotlyOutput("bc.indiv.htmap",
-                                                     width = "100%",
-                                                     height = "100%")
-                                     ),
+          tabPanel("BiClustering", 
+                   headerPanel("Welcome to Biclustering"),
+                   
+                   tabsetPanel(id = "tabs",
+                     tabPanel("Bicluster Exploration",
+                              h4("Explore Biclusters found"),
+                              hr(),
+                              fluidRow(
+                                column(6, plotlyOutput("bic.scatter",
+                                                       width = "100%",
+                                                       height = "60%")
+                                       ),
+                                column(6, plotlyOutput("bc.indiv.htmap",
+                                                       width = "100%",
+                                                       height = "100%")
+                                       ),
+                                ),
+                              hr(),
+                              fluidRow(
+                                column(12, plotlyOutput("biclusterSimilarityDendogramPlot",
+                                                       width = '100%',
+                                                       height = '100%'))
                               ),
-                            hr(),
-                            fluidRow(
-                              column(12, plotlyOutput("biclusterSimilarityDendogramPlot",
-                                                     width = '100%',
-                                                     height = '100%'))
-                            ),
+                     ),
                    ),
-                 ),
-              ),
+                ),
       ),
       width=8,),
         ),
-             ),
+             # ),
              
 )

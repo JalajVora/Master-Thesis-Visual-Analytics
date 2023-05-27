@@ -121,7 +121,7 @@ function(input, output, session) {
   readData <- reactive({
     
     if (input$select_dataset == "stry_clss") {
-      d <- read.csv(curl("https://raw.githubusercontent.com/JalajVora/Master-Thesis-Visual-Analytics/main/data/Story_Classification_Data.csv"))
+      d <- read.csv(curl("https://raw.githubusercontent.com/JalajVora/Master-Thesis-Visual-Analytics/main/data/Story_Classification_Data_raw.csv"))
       d <- d[,1:35]
       d <- d[, sapply(d, is.numeric)]
       d[is.na(d)] <- 0
@@ -197,16 +197,6 @@ function(input, output, session) {
                                 minc=as.numeric(input$mincol),
                                 number=as.numeric(input$n_biclstrs))
              },
-           # 'bccc' = {
-           #   print(typeof(input$alpha))
-           #   print(typeof(input$delta))
-           #   print(typeof(input$n_biclstrs))
-           #   bic.res <- biclust(x = readData(),
-           #                      method=BCCC(),
-           #                      delta=1.5,
-           #                      alpha=1,
-           #                      number=6)
-           # },
     )
 
     return(bic.res)
@@ -555,7 +545,6 @@ function(input, output, session) {
     BiMaxBiclustSet <-  BiclustSet(resBIC)
     SensitivityMatr<- similarity(BiMaxBiclustSet,index="sensitivity")
     rownames(SensitivityMatr) = colnames(SensitivityMatr) = paste0("BC ", 1:numBIC)
-    # print(SensitivityMatr)
     HCLMat <- HCLtree(SensitivityMatr)
     dg = as.dendrogram(HCLMat)
     p = ggdendrogram(dg, rotate = FALSE, size = 2)
@@ -567,29 +556,5 @@ function(input, output, session) {
     return(plt)
     
   })
-  
-  # output$biclusterSimilarityBoxPlot <- renderPlotly({
-  #   resBIC = run.biclust()
-  #   numBIC = input$n_biclstrs
-  #   
-  #   BiMaxBiclustSet <-  BiclustSet(resBIC)
-  #   simMatr<- similarity(BiMaxBiclustSet,index="jaccard", type="both")
-  #   rownames(simMatr) <- paste("BC", 1:numBIC, sep = "")
-  #   colnames(simMatr) <- paste("BC", 1:numBIC, sep = "")
-  #   
-  #   fig <- plot_ly(y=simMatr[1,], type = "box", name = "BC 1")
-  #   for (i in 2:(dim(simMatr)[1])) {
-  #     fig <- fig %>% add_trace(y=simMatr[i,], type = "box", name =  paste("BC", i))
-  #   }
-  #   fig <- fig %>% 
-  #     layout(
-  #       title = "Similarity of Biclusters",
-  #       xaxis = list(title="Biclusters"),
-  #       yaxis = list(title="Jaccardian Similarity Index")
-  #     )
-  #   
-  #   return(fig)
-  # })
-  
   
 }
