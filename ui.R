@@ -4,7 +4,7 @@ library(shinythemes)
 
 fluidPage(theme = shinytheme(theme = "united"),
   # navbarPage(title="Pattern Detection in Tabular Data with Flat Taxonomies: A Visual Analytics Case Study",
-  headerPanel('Pattern Detection in Tabular Data with Flat Taxonomies: A Visual Analytics Case Study'),
+  headerPanel('Pattern Detection in Tabular Data with shallow hierarchy: A Visual Analytics Case Study for Narrative Visualization'),
   sidebarLayout(
     sidebarPanel(
       tags$h3("Input:"),
@@ -70,6 +70,7 @@ fluidPage(theme = shinytheme(theme = "united"),
                           ),br(), br(), br(),
                    ),br(), br(), br(),
                  hr(),
+                 h4("Usage deviation from the average for selected subset"),
                  fluidRow(
                    column(6, style = "width: 900px;", plotlyOutput("tsneUsageDeviationPlot")
                    ),br(), br(), br(),
@@ -89,6 +90,11 @@ fluidPage(theme = shinytheme(theme = "united"),
                               h4("Explore Biclusters found"),
                               hr(),
                               fluidRow(
+                                column(12, plotlyOutput("biclusterSimilarityDendogramPlot",
+                                                        width = '100%',
+                                                        height = '100%'))
+                              ), hr(),
+                              fluidRow(
                                 column(6, plotlyOutput("bic.scatter",
                                                        width = "100%",
                                                        height = "60%")
@@ -98,12 +104,6 @@ fluidPage(theme = shinytheme(theme = "united"),
                                                        height = "100%")
                                        ),
                                 ),
-                              hr(),
-                              fluidRow(
-                                column(12, plotlyOutput("biclusterSimilarityDendogramPlot",
-                                                       width = '100%',
-                                                       height = '100%'))
-                              ),
                      ),
                    ),
                 ),

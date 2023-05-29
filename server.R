@@ -6,11 +6,7 @@
 #
 #    http://shiny.rstudio.com/
 #
-# install.packages("BiocManager")
-# if (!require("remotes", quietly = TRUE))
-#   install.packages("remotes")
-# if (!require("BiocManager", quietly = TRUE))
-#   install.packages("BiocManager")
+
 library(remotes)
 library(shiny)
 library(Rtsne)
@@ -21,13 +17,8 @@ library(ggdendro)
 library(curl)
 library(dplyr)
 library(BiocManager)
-# remotes::install_bioc("fabia")
 library(superbiclust)
 library(fabia)
-# # remotes::install_bioc("ComplexHeatmap")
-# library(ComplexHeatmap)
-# # remotes::install_bioc("InteractiveComplexHeatmap")
-# library(InteractiveComplexHeatmap)
 # remotes::install_github("briandconnelly/colormod")
 library(colormod)
 
@@ -184,7 +175,6 @@ function(input, output, session) {
     
     colnames(tsne_output_df) <- c("tsne_x", "tsne_y")
     
-    
     return(tsne_output_df)
   })
   
@@ -289,6 +279,8 @@ function(input, output, session) {
       
       mylines <- list()
       subset_lines <- list()
+      raw_data <- readrawData()
+      stories <- raw_data[clickData$customdata,36]
       
       for (col in c(1:length(merged.subset.df))) {
         line = list(type = "line",
@@ -342,7 +334,14 @@ function(input, output, session) {
         tickmode = "array",
         tickvals = 1:length(cleaned_data_cols),
         ticktext = cleaned_data_cols,
-        showgrid = TRUE))
+        showgrid = TRUE)
+        # ,
+        # hoverinfo = 'text',
+        # text = stories
+        )
+      
+      # fig <- layout(hoverinfo = 'text',
+      #               text = stories)
       
       return(fig)
     }
@@ -400,14 +399,15 @@ function(input, output, session) {
                   yref = "y",
                   x0 = total_similarity*100,
                   x1 = total_similarity*100,
-                  y0 = 0,
-                  y1 = 1)
+                  y0 = -1,
+                  y1 = 0.7
+                  )
       mylines <- c(mylines, list(line))
       
       fig <- layout(fig,
                     title = "Deviation of subset from overall average",
                     xaxis = list(title = "Pairwise Similarity %",
-                                 zeroline = TRUE,
+                                 zeroline = FALSE,
                                  autotypenumbers = 'strict'),
                     yaxis = list(showticklabels = FALSE),
                     shapes = mylines)
@@ -503,6 +503,8 @@ function(input, output, session) {
         plt.BC.heatmap = plot_ly(z=bin_enc_mat,
                                  x = colnames(data),
                                  y = rownames(data),
+                                 # x = rownames(data),
+                                 # y = colnames(data),
                                  colors = my_color_pallete,
                                  type = "heatmap",
                                  opacity = 0.5,
@@ -513,6 +515,8 @@ function(input, output, session) {
         plt.BC.heatmap = plot_ly(z= 1 * cluster_array[,,plt.number],
                                  x = colnames(data),
                                  y = rownames(data),
+                                 # x = rownames(data),
+                                 # y = colnames(data),
                                  colors = c("white",
                                             my_color_pallete[plt.number+1]),
                                  type = "heatmap",
