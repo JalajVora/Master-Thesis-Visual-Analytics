@@ -16,11 +16,17 @@ library(ggplot2)
 library(ggdendro)
 library(curl)
 library(dplyr)
-library(BiocManager)
-library(superbiclust)
-library(fabia)
-# remotes::install_github("briandconnelly/colormod")
-library(colormod)
+
+#External libraries
+# if(!requireNamespace("BiocManager"))
+  # install.packages("BiocManager")
+# remotes::install_git("https://git.bioconductor.org/packages/BiocGenerics")
+# BiocManager::install(c("Biobase", "fabia"))
+# library(BiocManager) #Bioc
+# library(superbiclust) #Bioc
+# library(fabia) #Bioc
+# remotes::install_github("briandconnelly/colormod") #clearly github, duh?
+library(colormod) #you dumb? I just told, f**king github!
 
 url = "https://raw.githubusercontent.com/JalajVora/Master-Thesis-Visual-Analytics/main/data/Story_Classification_Data.csv"
 options (warn = -1)
