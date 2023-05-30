@@ -72,40 +72,34 @@ fluidPage(theme = shinytheme(theme = "united"),
                  hr(),
                  h4("Usage deviation from the average for selected subset"),
                  fluidRow(
-                   column(6, style = "width: 900px;", plotlyOutput("tsneUsageDeviationPlot")
-                   ),br(), br(), br(),
+                   column(12, plotlyOutput("tsneUsageDeviationPlot",
+                                           height = "100%",
+                                           width = "100%")
+                   ),
                  ),
                  hr(),
                  fluidRow(
-                   column(6, style = "width: 900px;", plotlyOutput("tsneSimilarityPlot")
+                   column(6, style = "width: 900px;", plotlyOutput("tsneSimilarityPlot",
+                                                                   height = "10%")
                    ),br(), br(), br(),
                  ),
                  ),
                  
           tabPanel("BiClustering", 
                    headerPanel("Welcome to Biclustering"),
-                   
-                   tabsetPanel(id = "tabs",
-                     tabPanel("Bicluster Exploration",
-                              h4("Explore Biclusters found"),
-                              hr(),
-                              fluidRow(
-                                column(12, plotlyOutput("biclusterSimilarityDendogramPlot",
-                                                        width = '100%',
-                                                        height = '100%'))
-                              ), hr(),
-                              fluidRow(
-                                column(6, plotlyOutput("bic.scatter",
-                                                       width = "100%",
-                                                       height = "60%")
-                                       ),
-                                column(6, plotlyOutput("bc.indiv.htmap",
-                                                       width = "100%",
-                                                       height = "100%")
-                                       ),
-                                ),
-                     ),
-                   ),
+                          h4("Explore Biclusters found"),
+                          hr(),
+                          fluidRow(
+                            column(12, plotlyOutput("biclusterSimilarityDendogramPlot",
+                                                    width = '100%',
+                                                    height = '100%'))
+                          ), hr(),
+                          fluidRow(
+                            column(4, plotlyOutput("bic.scatter")
+                                   ),
+                            column(8, plotlyOutput("bc.indiv.htmap")
+                                   ),
+                            ),
                 ),
       ),
       width=8,),

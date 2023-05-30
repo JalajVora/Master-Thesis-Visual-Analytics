@@ -22,9 +22,9 @@ library(dplyr)
   # install.packages("BiocManager")
 # remotes::install_git("https://git.bioconductor.org/packages/BiocGenerics")
 # BiocManager::install(c("Biobase", "fabia"))
-# library(BiocManager) #Bioc
-# library(superbiclust) #Bioc
-# library(fabia) #Bioc
+library(BiocManager) #Bioc
+library(superbiclust) #Bioc
+library(fabia) #Bioc
 # remotes::install_github("briandconnelly/colormod") #clearly github, duh?
 library(colormod) #you dumb? I just told, f**king github!
 
@@ -269,12 +269,6 @@ function(input, output, session) {
       subset_data = as.data.frame(cleaned_data[clickData$customdata,])
       cleaned_data_cols <- colnames(cleaned_data)
       
-      
-      fig <- plotly_empty(x = cleaned_data,
-                          type="bar",
-                          mode = "markers",
-                          marker = list(color = "rgba(0,0,0,0)"))
-      
       count.subset.cols = subset_data %>% summarise_all(sum)
       percentage.subset.cols <- (count.subset.cols/dim(subset_data)[1])*100
       merged.subset.df = rbind(count.subset.cols, percentage.subset.cols)
@@ -293,8 +287,8 @@ function(input, output, session) {
                     line = list(color = "black", dash = "dot"),
                     xref = "x",
                     yref = "y",
-                    x0 = as.double(col)-0.25,
-                    x1 = as.double(col)+0.25,
+                    x0 = as.double(col)-1.25,
+                    x1 = as.double(col)-0.75,
                     y0 = merged.cleaned.df[2,col],
                     y1 = merged.cleaned.df[2,col])
         mylines <- c(mylines, list(line))
@@ -307,8 +301,9 @@ function(input, output, session) {
                        line = list(color = line_color),
                        xref = "x",
                        yref = "y",
-                       x0 = as.double(col)-0.25,
-                       x1 = as.double(col)+0.25,
+                       # issues with indexing, r starts with 1 whereas plotly starts with 0
+                       x0 = as.double(col)-1.25,
+                       x1 = as.double(col)-0.75,
                        y0 = merged.subset.df[2,col],
                        y1 = merged.subset.df[2,col])
         mylines <- c(mylines, list(cl_line))
@@ -319,32 +314,31 @@ function(input, output, session) {
                       fillcolor = line_color,
                       xref = "x",
                       yref = "y",
-                      x0 = as.double(col)-0.25,
-                      x1 = as.double(col)+0.25,
+                      x0 = as.double(col)-1.25,
+                      x1 = as.double(col)-0.75,
                       y0 = merged.cleaned.df[2,col],
                       y1 = merged.subset.df[2,col])
         mylines <- c(mylines, list(myrect))
       }
       
-      fig <- layout(fig,
-                    title = "Usage Deviation Plot",
-                    showlegend = FALSE,
-                    autosize = TRUE,
-                    xaxis = list(title = "Storytelling Techniques",
-                                 autotypenumbers = 'strict'),
-                    yaxis = list(title = "Usage %",
-                                 showgrid = TRUE),
-                    shapes = mylines)
+      xform <- list(categoryorder = "array",
+                    categoryarray = cleaned_data_cols)
       
-      fig <- fig %>% layout(xaxis = list(
-        tickmode = "array",
-        tickvals = 1:length(cleaned_data_cols),
-        ticktext = cleaned_data_cols,
-        showgrid = TRUE)
-        # ,
-        # hoverinfo = 'text',
-        # text = stories
-        )
+      fig = plot_ly(
+        x= cleaned_data_cols,
+        y= rep(0, length(cleaned_data_cols)),
+        type = "scatter",
+        mode = "marker",
+        height = 900
+      ) %>%
+        layout(title = "Usage Deviation Plot",
+               xaxis = xform,
+               shapes = mylines,
+               xaxis = list(title = "Storytelling Techniques",
+                            autotypenumbers = 'strict'),
+               yaxis = list(title = "Usage %",
+                            showgrid = TRUE),
+               line = list(color="black"))
       
       # fig <- layout(hoverinfo = 'text',
       #               text = stories)
@@ -463,7 +457,9 @@ function(input, output, session) {
         layout(xaxis = list(title = "# of Rows"),
                yaxis = list(title = "# of Columns"),
                title = "Biclusters",
-               hovermode = "closest") %>% hide_colorbar()
+               hovermode = "closest",
+               height = 400,
+               width = 300) %>% hide_colorbar()
       
       return(s)
     }
@@ -504,6 +500,7 @@ function(input, output, session) {
       
       rownames(data) = paste0("Story ", 1:130)
       story_titles = rawData[,36]
+      # colnames(data) = paste0("Technique ", 1:35)
       
       if (is.null(clickData)){
         plt.BC.heatmap = plot_ly(z=bin_enc_mat,
@@ -535,7 +532,8 @@ function(input, output, session) {
       plt.BC.heatmap <- plt.BC.heatmap %>% 
         layout(title = 'Selected Bicluster',
                xaxis = list(title = 'Storytelling Techniques'), 
-               yaxis = list(title = 'Stories'))
+               yaxis = list(title = 'Stories'),
+               height = 800)
       
       return(plt.BC.heatmap)
     }
@@ -555,13 +553,23 @@ function(input, output, session) {
       rownames(SensitivityMatr) = colnames(SensitivityMatr) = paste0("BC ", 1:numBIC)
       HCLMat <- HCLtree(SensitivityMatr)
       dg = as.dendrogram(HCLMat)
-      p = ggdendrogram(dg, rotate = FALSE, size = 2)
-      plt = ggplotly(p, dynamicTicks = FALSE) %>%
-        layout(title = 'Bicluster Ranking',
-               xaxis = list(title = 'Biclusters'), 
-               yaxis = list(title = 'Jaccardian Similarity Index'))
+      dd.data = dendro_data(dg)
+      unique_colors = createUniqueColors(numBIC)
+      my_color_pallete = createCustomColorPallete(unique_colors)
+      my_color_pallete = my_color_pallete[-1][-(numBIC+1)]
+      p2 = ggplot(segment(dd.data)) + geom_segment(aes(x=x, y=y, xend=xend, yend=yend))
+      label_data = label(p2)
+      label_data$color = my_color_pallete
+      p2 = p2 + geom_text(data=label(dd.data),
+                          aes(label=label, x=x, y=y, color = label_data$color)) + scale_color_manual(values = my_color_pallete) + coord_flip() + labs(y= "Jaccardian Similarity", x = "Biclusters", title = "Ranking of Biclusters") + theme(legend.position="none") + theme_dendro()
+      # p = ggdendrogram(dg, rotate = FALSE, size = 2)
+      # plt = ggplotly(p, dynamicTicks = FALSE) %>%
+      #   layout(
+      #     # title = 'Bicluster Ranking',
+      #          xaxis = list(title = 'Biclusters'), 
+      #          yaxis = list(title = 'Jaccardian Similarity Index'))
       
-      return(plt)
+      return(p2)
     }
     return(NULL)
   })
