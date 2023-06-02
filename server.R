@@ -554,7 +554,7 @@ function(input, output, session) {
       HCLMat <- HCLtree(SensitivityMatr)
       dg = as.dendrogram(HCLMat, horiz=FALSE)
       dd.data = dendro_data(dg)
-      print(dd.data)
+
       
       unique_colors = createUniqueColors(numBIC)
       my_color_pallete = createCustomColorPallete(unique_colors)
@@ -569,7 +569,7 @@ function(input, output, session) {
       for (i in 1:numBIC) {
         dd.data$segments = rbind(dd.data$segments, c(x=i, y=-0.02, xend=i, yend=0.0))
       }
-      print(segment(dd.data))
+
       p2 = ggplot(segment(dd.data)) +
            geom_segment(aes(x=x, y=y, xend=xend, yend=yend)) +
            geom_text(data=label(dd.data),
