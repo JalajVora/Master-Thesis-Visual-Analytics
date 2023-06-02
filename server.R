@@ -19,9 +19,12 @@ library(dplyr)
 
 #External libraries
 # if(!requireNamespace("BiocManager"))
-  # install.packages("BiocManager")
+# install.packages("BiocManager")
 # remotes::install_git("https://git.bioconductor.org/packages/BiocGenerics")
 # BiocManager::install(c("Biobase", "fabia"))
+
+# library(BiocManager)
+# options(repos = BiocManager::repositories())
 library(BiocManager) #Bioc
 library(superbiclust) #Bioc
 library(fabia) #Bioc

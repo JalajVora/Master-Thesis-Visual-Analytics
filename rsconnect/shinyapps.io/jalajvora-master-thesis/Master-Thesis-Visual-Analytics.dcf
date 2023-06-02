@@ -5,10 +5,10 @@ account: jalajvora-master-thesis
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 8557453
-bundleId: 7278139
+bundleId: 7297679
 url: https://jalajvora-master-thesis.shinyapps.io/Master-Thesis-Visual-Analytics/
-when: 1685385290.76472
-lastSyncTime: 1685385290.76475
+when: 1685724482.186
+lastSyncTime: 1685724482.18603
 asMultiple: FALSE
 asStatic: FALSE
 ignoredFiles: .RData|data/Story_Classification_Data.csv|data/Story_Classification_Data_raw.csv|data/upper_triangle.csv|documentation/Master Thesis (Version 100).zip|documentation/Master Thesis (Version 121).zip|LICENSE|README.md

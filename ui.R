@@ -66,10 +66,13 @@ fluidPage(theme = shinytheme(theme = "united"),
                  headerPanel("Welcome to t-SNE"),
                  hr(),
                  fluidRow(
-                   column(6, plotlyOutput("tsneScatterPlot")
-                          ),br(), br(), br(),
-                   ),br(), br(), br(),
+                   column(6, plotlyOutput("tsneScatterPlot")), hr(),
+                   column(6, plotlyOutput("tsneSimilarityPlot")), hr(),
+                   br(), br(), br(),
+                   ),
+                 br(), br(), br(),
                  hr(),
+                 br(), br(), br(),
                  h4("Usage deviation from the average for selected subset"),
                  fluidRow(
                    column(12, plotlyOutput("tsneUsageDeviationPlot",
@@ -77,12 +80,12 @@ fluidPage(theme = shinytheme(theme = "united"),
                                            width = "100%")
                    ),
                  ),
-                 hr(),
-                 fluidRow(
-                   column(6, style = "width: 900px;", plotlyOutput("tsneSimilarityPlot",
-                                                                   height = "10%")
-                   ),br(), br(), br(),
-                 ),
+                 # hr(),
+                 # fluidRow(
+                 #   column(6, style = "width: 900px;", 
+                 #          plotlyOutput("tsneSimilarityPlot")
+                 #   ),br(), br(), br(),
+                 # ),
                  ),
                  
           tabPanel("BiClustering", 
