@@ -326,7 +326,10 @@ function(input, output, session) {
         y= rep(0, length(cleaned_data_cols)),
         type = "scatter",
         mode = "marker",
-        height = 900
+        height = 900,
+        line=list(color='#00000000'),
+        hoverinfo = 'text',
+        # text = merged.subset.df[2,]
       ) %>%
         layout(title = "Usage Deviation Plot",
                xaxis = xform,
@@ -339,7 +342,7 @@ function(input, output, session) {
       
       # fig <- layout(hoverinfo = 'text',
       #               text = stories)
-      
+      print(merged.subset.df[2,])
       return(fig)
     }
     
@@ -423,7 +426,7 @@ function(input, output, session) {
       colnames(bic.rowxcol) <- c("row_count", "col_count")
       unique_colors = createUniqueColors(num_of_bic)
       my_color_pallete = createCustomColorPallete(unique_colors)
-      my_color_pallete = my_color_pallete[-1][-(num_of_bic+1)]
+      my_color_pallete = my_color_pallete[-1][-(num_of_bic+1)] #removing 1st and last element from pallete
       
       # Get the number of rows and columns in each bicluster
       for (i in 1:num_of_bic) {
@@ -549,16 +552,38 @@ function(input, output, session) {
       SensitivityMatr<- similarity(BiMaxBiclustSet,index="sensitivity")
       rownames(SensitivityMatr) = colnames(SensitivityMatr) = paste0("BC ", 1:numBIC)
       HCLMat <- HCLtree(SensitivityMatr)
-      dg = as.dendrogram(HCLMat)
+      dg = as.dendrogram(HCLMat, horiz=FALSE)
       dd.data = dendro_data(dg)
+      print(dd.data)
+      
       unique_colors = createUniqueColors(numBIC)
       my_color_pallete = createCustomColorPallete(unique_colors)
-      my_color_pallete = my_color_pallete[-1][-(numBIC+1)]
-      p2 = ggplot(segment(dd.data)) + geom_segment(aes(x=x, y=y, xend=xend, yend=yend))
-      label_data = label(p2)
-      label_data$color = my_color_pallete
-      p2 = p2 + geom_text(data=label(dd.data),
-                          aes(label=label, x=x, y=y, color = label_data$color)) + scale_color_manual(values = my_color_pallete) + coord_flip() + labs(y= "Jaccardian Similarity", x = "Biclusters", title = "Ranking of Biclusters") + theme(legend.position="none") + theme_dendro()
+      my_color_pallete = my_color_pallete[-1][-(numBIC+1)] #removing first and last colors
+      
+      my_color_pallete_dark = list()
+      for (i in 1:numBIC) {
+        my_color_pallete_dark = append(my_color_pallete_dark, substr(my_color_pallete[i], 1,7))
+      }
+      bicluster_names = paste0("BC ", 1:numBIC)
+      my_colors <- setNames(my_color_pallete_dark, bicluster_names)
+      for (i in 1:numBIC) {
+        dd.data$segments = rbind(dd.data$segments, c(x=i, y=-0.02, xend=i, yend=0.0))
+      }
+      print(segment(dd.data))
+      p2 = ggplot(segment(dd.data)) +
+           geom_segment(aes(x=x, y=y, xend=xend, yend=yend)) +
+           geom_text(data=label(dd.data),
+                    aes(label=label,
+                        x=x, 
+                        y=y-.05,
+                        color = dd.data$labels$label)) +
+           scale_color_manual(values=my_colors) +
+           coord_flip() + 
+           labs(y= "Jaccardian Similarity",
+                x = "Biclusters",
+                title = "Ranking of Biclusters") + 
+           theme(legend.position="none") + 
+           theme_dendro()
       # p = ggdendrogram(dg, rotate = FALSE, size = 2)
       # plt = ggplotly(p, dynamicTicks = FALSE) %>%
       #   layout(
