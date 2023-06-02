@@ -18,18 +18,12 @@ library(curl)
 library(dplyr)
 
 #External libraries
-# if(!requireNamespace("BiocManager"))
-# install.packages("BiocManager")
-# remotes::install_git("https://git.bioconductor.org/packages/BiocGenerics")
-# BiocManager::install(c("Biobase", "fabia"))
-
-# library(BiocManager)
 # options(repos = BiocManager::repositories())
 library(BiocManager) #Bioc
 library(superbiclust) #Bioc
 library(fabia) #Bioc
-# remotes::install_github("briandconnelly/colormod") #clearly github, duh?
-library(colormod) #you dumb? I just told, f**king github!
+
+library(colormod)
 
 url = "https://raw.githubusercontent.com/JalajVora/Master-Thesis-Visual-Analytics/main/data/Story_Classification_Data.csv"
 options (warn = -1)
@@ -221,8 +215,8 @@ function(input, output, session) {
                   y = ~tsne_y, 
                   type = 'scatter', 
                   mode = 'markers', 
-                  width = "800px", 
-                  height = "800px",
+                  # width = "800px", 
+                  # height = "800px",
                   color = theme_colors,
                   text = paste0(hover_info),
                   hovertemplate = "%{text}",
@@ -247,8 +241,8 @@ function(input, output, session) {
               y = ~tsne_y, 
               type = 'scatter', 
               mode = 'markers', 
-              width = "800px", 
-              height = "800px",
+              # width = "800px", 
+              # height = "800px",
               showlegend = F
       ) %>%
         layout(xaxis = list(title = "t-SNE Dimension 1"),
