@@ -531,7 +531,7 @@ function(input, output, session) {
       
       plt.BC.heatmap <- plt.BC.heatmap %>% 
         layout(title = 'Selected Bicluster',
-               xaxis = list(title = 'Storytelling Techniques'), 
+               # xaxis = list(title = 'Storytelling Techniques'), 
                yaxis = list(title = 'Stories'),
                height = 800)
       
