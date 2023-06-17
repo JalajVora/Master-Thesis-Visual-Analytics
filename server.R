@@ -454,8 +454,8 @@ function(input, output, session) {
       ) %>% 
         config(modeBarButtonsToRemove = c('zoom','zoomin', 
                                           'zoomOut', 'pan2d', 'zoomOut2d')) %>%
-        layout(xaxis = list(title = "# of Rows"),
-               yaxis = list(title = "# of Columns"),
+        layout(xaxis = list(title = "# of Stories"),
+               yaxis = list(title = "# of Storytelling Techniques"),
                title = "Biclusters",
                hovermode = "closest",
                height = 400,
