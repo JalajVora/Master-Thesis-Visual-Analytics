@@ -434,6 +434,8 @@ function(input, output, session) {
         bic.rowxcol[i, 2] <- sum(bic.res@NumberxCol[i,] != 0)
       }
       
+      col_count = bic.rowxcol$col_count
+      
       rownames(bic.rowxcol) <- paste("BC", 1:num_of_bic, sep = "")
       
       s <- plot_ly(source = "scatter_plot",
@@ -447,7 +449,8 @@ function(input, output, session) {
                    colors = my_color_pallete,
                    marker = list(size = 10),
                    text = rownames(bic.rowxcol),
-                   hoverinfo = 'text',
+                   hovertemplate = paste(rownames(bic.rowxcol), '<br>Stories: %{x}  <br>', 'Storytelling Techniques:', bic.rowxcol$col_count),
+                   # hoverinfo = 'text',
                    showlegend = F,
                    showscale = FALSE,
                    customdata = c(1:length(bic.rowxcol$row_count))
@@ -575,15 +578,16 @@ function(input, output, session) {
            geom_text(data=label(dd.data),
                     aes(label=label,
                         x=x, 
-                        y=y-.05,
+                        y=y-.035,
                         color = dd.data$labels$label)) +
            scale_color_manual(values=my_colors) +
            coord_flip() + 
            labs(y= "Jaccardian Similarity",
                 x = "Biclusters",
                 title = "Ranking of Biclusters") + 
-           theme(legend.position="none") + 
-           theme_dendro()
+           theme(legend.position="none") 
+      # + 
+           # theme_dendro()
       # p = ggdendrogram(dg, rotate = FALSE, size = 2)
       # plt = ggplotly(p, dynamicTicks = FALSE) %>%
       #   layout(
